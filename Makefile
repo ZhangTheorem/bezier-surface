@@ -2,7 +2,7 @@ SHELL = /bin/sh
 .SUFFIXES:
 .SUFFIXES: .cpp .o .h .d
 
-CXXFLAGS = -g -Wall -Iinclude -fopenmp -DGL_GLEXT_PROTOTYPES -Iglut-3.7.6-bin
+CXXFLAGS = -g -Wall -Iinclude -fopenmp -DGL_GLEXT_PROTOTYPES
 LDFLAGS = -lglut -lGL
 LDLIBS =
 VPATH = src

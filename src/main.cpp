@@ -2,6 +2,7 @@
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
+#include <vector>
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -17,16 +18,21 @@
 
 int windowWidth = 700;
 int windowHeight = 700;
+
+int windowID;
 unsigned int mode = GLUT_SINGLE | GLUT_RGB;
+/**
 float parameter;
+bool objInput = false;
+bool adaptive = false;
+int numPatches = 0;
+std::vector<float[4][4][3]> patches; // row, column, coord
+**/
 
 double xAngle = 0;
 double yAngle = 0;
 double zAngle = 0;
 
-GLfloat ctrlpoints[5][3] = {
-        { -4.0, -4.0, 0.0}, { -2.0, 4.0, 0.0}, 
-        {2.0, -4.0, 0.0}, {4.0, 4.0, 0.0}, {-4.5, 3.0, 0.0}};
 
 void init(){
     glEnable(GL_LIGHTING);      // enable lighting
@@ -86,6 +92,9 @@ void keyboard(unsigned char key, int x, int y) {
         case 'q':
             exit(0);
             break;
+        case 27:
+            glutDestroyWindow(windowID);
+            break;
     }
     glutPostRedisplay();
 }
@@ -129,47 +138,41 @@ void special(int key, int x, int y) {
 }
 
 //****************************************************
-// Input Parsing
+// Input Parsing & Main
 //****************************************************
 
-void parse_input(char* input) {
+/**
+void parse_bez_input(char* input) {
+    int linecount = 0;
+    bool setNum = false;
 
-    // Read from the file
-    FILE* file = fopen(input, "r");
+    std::string line;
+    std::ifstream file (input);
+    if (file.is_open()) {
+        while (std::getline(file, line)) {
+            linecount++;
+            if (strcmp(line.c_str(), "\n") == 0)
+                continue;
 
-    // Error if file does not exist
-    if (file == NULL) {
-        std::cerr << "File does not exist: " << input << std::endl;
+            if (!setNum) {
+                numPatches = atoi(line.c_str());
+                setNum = true;
+                continue;
+            }
+
+            std::cout << line << std::endl;
+        }
+        file.close();
+    } else {
+        std::cerr << "Unable to open file: " << input << std::endl;
         exit(EXIT_FAILURE);
     }
-
-    // // Declarations
-    // char line[256];
-    // char *tokenised_line;
-    // int linecount = 1;
-
-    // // Print out each line
-    // while (fgets(line, sizeof(line), file)) {
-
-    // // Tokenise the line, starting at header
-    // tokenised_line = strtok(line, " \n\t\r");
-
-    // if (tokenised_line == NULL) {
-    //     // Do nothing
-    // } else if (strcmp(tokenised_line, "cam") == 0) {
-    // } else {
-    //     std::cerr << "Command \"" << tokenised_line << "\" unrecognized. Line " <<
-    //         linecount << " ignored." << std::endl;
-    // }
-
-    // linecount++;
-
-    // }
-
-    // Close the file
-    fclose(file);
-
 }
+
+void parse_obj_input(char* input) {
+    // Currently does nothing
+}
+**/
 
 int main(int argc, char *argv[]) {
 
@@ -177,8 +180,22 @@ int main(int argc, char *argv[]) {
         //std::cerr << "Not enought input parameters" << std::endl;
         // exit(EXIT_FAILURE);
     }
-    // parse_input(argv[1]);
+    /**
+    char* ext = strpbrk(argv[1], ".");
+    if (strcmp(ext, ".obj")) {
+        objInput = true;
+        parse_obj_input(argv[1]);
+    } else {
+        parse_bez_input(argv[1]);
+    }
+
     // parameter = strtof(argv[2], NULL);
+    if (argc > 3) {
+        int argIndex = 3;
+        if (strcmp(argv[argIndex], "-a") == 0)
+            adaptive = true;
+    }
+    **/
 
     glutInit(&argc, argv);
     glutInitDisplayMode(mode);     // set RGB color mode

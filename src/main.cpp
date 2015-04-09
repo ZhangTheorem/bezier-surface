@@ -37,6 +37,7 @@ double zAngle = 0;
 //****************************************************
 
 void init(){
+
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_LIGHT0);        // enable
@@ -45,11 +46,10 @@ void init(){
 
     glLightfv(GL_LIGHT0, GL_POSITION, lpos);
 
-    glShadeModel(GL_FLAT);      // flat shading
-    // glShadeModel(GL_SMOOTH);    // smooth shading
 }
 
 void display() {
+
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
@@ -64,6 +64,7 @@ void display() {
     glPopMatrix();          // restore the modelview matrix
 
     glutSwapBuffers();          // make the image visible
+
 }
 
 void reshape(int w, int h) {
@@ -81,7 +82,12 @@ void reshape(int w, int h) {
 void keyboard(unsigned char key, int x, int y) {
     switch (key) {
         case 's':
-            std::cout << "s" << std::endl;
+            GLint model;
+            glGetIntegerv(GL_SHADE_MODEL, &model);
+            if (model == GL_SMOOTH)
+                glShadeModel(GL_FLAT);
+            else
+                glShadeModel(GL_SMOOTH);
             break;
         case 'w':
             std::cout << "w" << std::endl;
@@ -93,14 +99,12 @@ void keyboard(unsigned char key, int x, int y) {
             std::cout << "-" << std::endl;
             break;
         case 'q':
-            exit(0);
-            break;
         case 27:
             glutDestroyWindow(windowID);
-            exit(0);
             break;
     }
-    glutPostRedisplay();
+    if (glutGetWindow())
+        glutPostRedisplay();
 }
 
 void special(int key, int x, int y) {

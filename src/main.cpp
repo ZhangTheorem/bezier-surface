@@ -25,7 +25,7 @@ float parameter;
 bool objInput = false;
 bool adaptive = false;
 int numPatches = 0;
-// std::vector<float[4][4][3]> patches; // row, column, coord
+std::vector<float***> patches; // row, column, coord
 
 float lpos[] = { 1000, 1000, 1000, 1 };
 double xAngle = 0;
@@ -40,9 +40,9 @@ void init(){
 
     glEnable(GL_DEPTH_TEST);
 
-    glEnable(GL_LIGHT0);        // enable
-    glEnable(GL_COLOR_MATERIAL);    // specify object color
-    glEnable(GL_LIGHTING);      // enable lighting
+    glEnable(GL_LIGHT0);
+    glEnable(GL_COLOR_MATERIAL);
+    glEnable(GL_LIGHTING);
 
     glLightfv(GL_LIGHT0, GL_POSITION, lpos);
 
@@ -80,6 +80,7 @@ void reshape(int w, int h) {
 }
 
 void keyboard(unsigned char key, int x, int y) {
+
     switch (key) {
         case 's':
             GLint model;
@@ -103,11 +104,14 @@ void keyboard(unsigned char key, int x, int y) {
             glutDestroyWindow(windowID);
             break;
     }
+
     if (glutGetWindow())
         glutPostRedisplay();
+
 }
 
 void special(int key, int x, int y) {
+
     switch (key) {
         case GLUT_KEY_LEFT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
@@ -143,6 +147,7 @@ void special(int key, int x, int y) {
             break;
     }
     glutPostRedisplay();
+
 }
 
 //****************************************************
@@ -150,35 +155,106 @@ void special(int key, int x, int y) {
 //****************************************************
 
 void parse_bez_input(char* input) {
-    int linecount = 0;
-    bool setNum = false;
 
+    int linecount = 0;
+    int patchIndex = 0;
+    int rowIndex = 0;
+    bool setNum = false;
+    float*** patch;
     std::string line;
     std::ifstream file (input);
+
     if (file.is_open()) {
+
+        std::cout << "Parsing .bez file..." << std::endl;
+
         while (std::getline(file, line)) {
+
             linecount++;
             char* tokens = new char[line.length() + 1];
             strcpy(tokens, line.c_str());
             tokens = strtok(tokens, " \n\t\r");
+
             if (tokens == NULL) {
                 continue;
             }
 
             if (!setNum) {
-                numPatches = atoi(line.c_str());
+                if (!isdigit(tokens[0])) {
+                    std::cerr << "Line " << linecount <<
+                            " was not formatted correctly." << std::endl;
+                    file.close();
+                    exit(EXIT_FAILURE);
+                }
+                numPatches = atoi(tokens);
                 setNum = true;
                 continue;
             }
 
-            std::cout << line << std::endl;
+            if (patchIndex < numPatches) {
+
+                int i = 0;
+                if (rowIndex == 0) {
+                    patch = new float**[4];
+                    for (int r = 0; r < 4; r++) {
+                        patch[r] = new float*[4];
+                        for (int c = 0; c < 4; c++) {
+                            patch[r][c] = new float[3];
+                        }
+                    }
+                }
+                    
+
+                while (tokens != NULL) {
+                    if (i >= 12) {
+                        std::cerr << "Line " << linecount <<
+                                " contains too many values, which were ignored." <<
+                                std::endl;
+                        break;
+                    }
+                    if (!isdigit(tokens[0]) && tokens[0] != '+'
+                            && tokens[0] != '-' && tokens[0] != '.') {
+                        std::cerr << "Line " << linecount <<
+                                " was not formatted correctly." << std::endl;
+                        file.close();
+                        exit(EXIT_FAILURE);
+                    }
+                    patch[rowIndex][i / 3][i % 3] = atof(tokens);
+                    tokens = strtok(NULL, " \n\t\r");
+                    i++;
+                }
+
+                if (i < 12) {
+                    std::cerr << "Line " << linecount <<
+                            " does not contain enough values." << std::endl;
+                    file.close();
+                    exit(EXIT_FAILURE);
+                }
+
+                rowIndex++;
+                if (rowIndex == 4) {
+                    patches.push_back(patch);
+                    patchIndex++;
+                    rowIndex = 0;
+                }
+
+            }
+
         }
+
         file.close();
+        if (patchIndex < numPatches) {
+            std::cerr << "File does not contain the indicated number " <<
+                    "of patches." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        std::cout << "Finished parsing .bez file." << std::endl;
+
     } else {
         std::cerr << "Unable to open file: " << input << std::endl;
         exit(EXIT_FAILURE);
     }
-    std::cout << numPatches << std::endl;
+
 }
 
 void parse_obj_input(char* input) {
@@ -186,19 +262,22 @@ void parse_obj_input(char* input) {
 }
 
 int main(int argc, char *argv[]) {
+
     if (argc < 3) {
-        std::cerr << "Not enought input parameters" << std::endl;
+        std::cerr << "Not enough input parameters." << std::endl;
         // exit(EXIT_FAILURE);
     }
 
     char* ext = strpbrk(argv[1], ".");
     if (strcmp(ext, ".obj") == 0) {
-        std::cout << "Parsing .obj file" << std::endl;
+        std::cout << "Parsing .obj file..." << std::endl;
         objInput = true;
         parse_obj_input(argv[1]);
-    } else {
-        std::cout << "Parsing .bez file" << std::endl;
+    } else if (strcmp(ext, ".bez") == 0) {
         parse_bez_input(argv[1]);
+    } else {
+        std::cerr << "File format not recognized." << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     // parameter = strtof(argv[2], NULL);
@@ -207,6 +286,8 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[argIndex], "-a") == 0)
             adaptive = true;
     }
+
+    // test_patches();
 
     glutInit(&argc, argv);
     glutInitDisplayMode(mode);
@@ -223,4 +304,26 @@ int main(int argc, char *argv[]) {
     glutMainLoop();
     
     return 0;
+
+}
+
+//****************************************************
+// Test Functions
+//****************************************************
+
+void test_patches() {
+    // Currently does nothing
+    for (int i = 0; i < numPatches; i++) {
+        float*** patch = patches.at(i);
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+                for (int j = 0; j < 3; j++) {
+                    std::cout << patch[r][c][j] << " ";
+                }
+                std::cout << "     ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+    }
 }

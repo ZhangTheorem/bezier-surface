@@ -154,6 +154,36 @@ void special(int key, int x, int y) {
 // Input Parsing & Main
 //****************************************************
 
+bool isFloat(char* input) {
+    if (!isdigit(input[0])) {
+        if (input[0] == '+' || input[0] == '-') {
+            if (!isdigit(input[1])) {
+                if (input[1] == '.') {
+                    if (isdigit(input[2]))
+                        return true;
+                }
+                return false;
+            }
+            return true;
+        } else if (input[0] == '.') {
+            if (isdigit(input[1]))
+                return true;
+        } else if (input[0] == 'e' || input[0] == 'E') {
+            if (!isdigit(input[1])) {
+                if (input[1] == '+' || input[1] == '-') {
+                    if (isdigit(input[2]))
+                        return true;
+                }
+                return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    return true;
+}
+
 void parse_bez_input(char* input) {
 
     int linecount = 0;
@@ -188,6 +218,8 @@ void parse_bez_input(char* input) {
                 }
                 numPatches = atoi(tokens);
                 setNum = true;
+                if (numPatches == 0)
+                    std::cout << "Warning: 0 patches indicated." << std::endl;
                 continue;
             }
 
@@ -212,8 +244,7 @@ void parse_bez_input(char* input) {
                                 std::endl;
                         break;
                     }
-                    if (!isdigit(tokens[0]) && tokens[0] != '+'
-                            && tokens[0] != '-' && tokens[0] != '.') {
+                    if (!isFloat(tokens)) {
                         std::cerr << "Line " << linecount <<
                                 " was not formatted correctly." << std::endl;
                         file.close();
@@ -270,7 +301,6 @@ int main(int argc, char *argv[]) {
 
     char* ext = strpbrk(argv[1], ".");
     if (strcmp(ext, ".obj") == 0) {
-        std::cout << "Parsing .obj file..." << std::endl;
         objInput = true;
         parse_obj_input(argv[1]);
     } else if (strcmp(ext, ".bez") == 0) {

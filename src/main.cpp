@@ -12,6 +12,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef BEZIER_H
+#include "bezier.h"
+#endif
+
+
 //****************************************************
 // Global Variables
 //****************************************************

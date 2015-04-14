@@ -225,6 +225,11 @@ void parse_bez_input(char* input) {
                 setNum = true;
                 if (numPatches == 0)
                     std::cout << "Warning: 0 patches indicated." << std::endl;
+                if (strtok(NULL, " \n\t\r") != NULL) {
+                    std::cerr << "Line " << linecount <<
+                            " contains extra values, which were ignored." <<
+                            std::endl;
+                }
                 continue;
             }
 
@@ -245,7 +250,7 @@ void parse_bez_input(char* input) {
                 while (tokens != NULL) {
                     if (i >= 12) {
                         std::cerr << "Line " << linecount <<
-                                " contains too many values, which were ignored." <<
+                                " contains extra values, which were ignored." <<
                                 std::endl;
                         break;
                     }
@@ -318,8 +323,11 @@ int main(int argc, char *argv[]) {
     // parameter = strtof(argv[2], NULL);
     if (argc > 3) {
         int argIndex = 3;
-        if (strcmp(argv[argIndex], "-a") == 0)
-            adaptive = true;
+        while (argIndex < argc) {
+            if (strcmp(argv[argIndex], "-a") == 0)
+                adaptive = true;
+            argIndex++;
+        }
     }
 
     // test_patches();

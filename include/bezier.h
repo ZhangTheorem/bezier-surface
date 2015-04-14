@@ -21,8 +21,9 @@
 #include <string.h>
 
 class Bezier{
-	std::vector<Vector> curveinterp(std::vector<Vector> *curve, float u);
-	std::vector<Vector> patchinterp(std::vector<Vector> *patch, float u, float v);
-	void uniform_subdivide(std::vector<Vector> *patch, float step);
-	void adaptive_subdivide(float error);
+	Vector curveinterp(std::vector<Vector> *curve, float u);
+	std::vector<Vector> curveinterpwithdu(std::vector<Vector> *curve, float u);
+	std::vector<Vector> patchinterp(Vector **patch, float u, float v);
+	void uniform_subdivide(Vector **patch, float step);
+	void adaptive_subdivide(Vector **patch, float error);
 };

@@ -67,7 +67,7 @@ void Vector::clamp() {
 
 void Vector::print(Vector v) {
   
-  printf("(%f, %f, %f)\n", v.x, v.y, v.z);
+  printf("(%f, %f, %f)", v.x, v.y, v.z);
   
 }
 

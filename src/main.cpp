@@ -16,6 +16,9 @@
 #include "bezier.h"
 #endif
 
+#ifndef VECTOR_H
+#include "vector.h"
+#endif
 
 //****************************************************
 // Global Variables
@@ -32,8 +35,9 @@ bool adaptive = false;
 bool wireframe = false;
 int numPatches = 0;
 int numdiv = 0;
-std::vector<float***> patches; // row, column, coord
-std::vector<float***> surfaces;
+std::vector<Vector**> patches; // row, column, coord
+std::vector<Vector**> surfaces;
+std::vector<Vector**> normals;
 
 float lpos[] = { 1000, 1000, 1000, 1 };
 double xAngle = 0;
@@ -58,7 +62,7 @@ void init(){
     } else {
         numdiv = 1.0f / parameter + 1;
         for (int i = 0; i < numPatches; i++) {
-            Bezier::uniform_subdivide(patches.at(i), parameter, &surfaces);
+            Bezier::uniform_subdivide(patches.at(i), parameter, &surfaces, &normals);
         }
     }
 }
@@ -85,13 +89,18 @@ void display() {
                 glRotated(zAngle, 0, 0, 1);
                 glColor3f(1.0, 0.1, 0.1);
                 glBegin(GL_QUADS);
-                float*** surface = surfaces.at(i);
+                Vector** surface = surfaces.at(i);
+                Vector** normal = normals.at(i);
                 for (int u = 0; u < numdiv - 1; u++) {
                     for (int v = 0; v < numdiv - 1; v++) {
-                        glVertex3f(surface[u][v][0], surface[u][v][1], surface[u][v][2]);
-                        glVertex3f(surface[u+1][v][0], surface[u+1][v][1], surface[u+1][v][2]);
-                        glVertex3f(surface[u+1][v+1][0], surface[u+1][v+1][1], surface[u+1][v+1][2]);
-                        glVertex3f(surface[u][v+1][0], surface[u][v+1][1], surface[u][v+1][2]);
+                        glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
+                        glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
+                        glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
+                        glVertex3f(surface[u+1][v].x, surface[u+1][v].y, surface[u+1][v].z);
+                        glNormal3f(normal[u+1][v+1].x, normal[u+1][v+1].y, normal[u+1][v+1].z);
+                        glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
+                        glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
+                        glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
                     }
                 }
                 glEnd();
@@ -220,7 +229,7 @@ void parse_bez_input(char* input) {
     int patchIndex = 0;
     int rowIndex = 0;
     bool setNum = false;
-    float*** patch;
+    Vector** patch;
     std::string line;
     std::ifstream file (input);
 
@@ -259,12 +268,9 @@ void parse_bez_input(char* input) {
             if (patchIndex < numPatches) {
                 int i = 0;
                 if (rowIndex == 0) {
-                    patch = new float**[4];
+                    patch = new Vector*[4];
                     for (int r = 0; r < 4; r++) {
-                        patch[r] = new float*[4];
-                        for (int c = 0; c < 4; c++) {
-                            patch[r][c] = new float[3];
-                        }
+                        patch[r] = new Vector[4];
                     }
                 }
 
@@ -281,9 +287,14 @@ void parse_bez_input(char* input) {
                         file.close();
                         exit(EXIT_FAILURE);
                     }
-                    patch[rowIndex][i / 3][i % 3] = atof(tokens);
+                    float x = atof(tokens);
                     tokens = strtok(NULL, " \n\t\r");
-                    i++;
+                    float y = atof(tokens);
+                    tokens = strtok(NULL, " \n\t\r");
+                    float z = atof(tokens);
+                    tokens = strtok(NULL, " \n\t\r");
+                    patch[rowIndex][i / 3] = Vector(x, y, z);
+                    i+=3;
                 }
 
                 if (i < 12) {
@@ -371,12 +382,10 @@ int main(int argc, char *argv[]) {
 
 void test_patches() {
     for (int i = 0; i < numPatches; i++) {
-        float*** patch = patches.at(i);
+        Vector** patch = patches.at(i);
         for (int r = 0; r < 4; r++) {
             for (int c = 0; c < 4; c++) {
-                for (int j = 0; j < 3; j++) {
-                    std::cout << patch[r][c][j] << " ";
-                }
+                Vector::print(patch[r][c]);
                 std::cout << "     ";
             }
             std::cout << std::endl;

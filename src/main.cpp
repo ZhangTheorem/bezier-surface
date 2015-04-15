@@ -29,8 +29,11 @@ unsigned int mode = GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH;
 float parameter;
 bool objInput = false;
 bool adaptive = false;
+bool wireframe = false;
 int numPatches = 0;
+int numdiv = 0;
 std::vector<float***> patches; // row, column, coord
+std::vector<float***> surfaces;
 
 float lpos[] = { 1000, 1000, 1000, 1 };
 double xAngle = 0;
@@ -42,7 +45,6 @@ double zAngle = 0;
 //****************************************************
 
 void init(){
-
     glEnable(GL_DEPTH_TEST);
 
     glEnable(GL_LIGHT0);
@@ -51,29 +53,56 @@ void init(){
 
     glLightfv(GL_LIGHT0, GL_POSITION, lpos);
 
+    if (adaptive) {
+        // Do adaptive shit
+    } else {
+        numdiv = 1.0f / parameter + 1;
+        for (int i = 0; i < numPatches; i++) {
+            Bezier::uniform_subdivide(patches.at(i), parameter, &surfaces);
+        }
+    }
 }
 
 void display() {
-
-    glClearColor(0.0, 0.0, 0.0, 0.0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
     glTranslatef(0.0, 0.0, -4.5);
 
-    glPushMatrix();
-        glRotated(yAngle, 0, 1, 0);   //rotate by rotAngle about y-axis
-        glRotated(zAngle, 0, 0, 1);
-        glScalef(1.0, 1.0, 1.0);
-        glColor3f(1.0, 0.1, 0.1);       // redish
-        glutSolidTeapot(1);         // draw the teapot
-    glPopMatrix();          // restore the modelview matrix
+    // glPushMatrix();
+    //     glRotated(yAngle, 0, 1, 0);
+    //     glRotated(zAngle, 0, 0, 1);
+    //     glScalef(1.0, 1.0, 1.0);
+    //     glColor3f(1.0, 0.1, 0.1);
+    //     glutSolidTeapot(1);
+    // glPopMatrix();
 
-    glutSwapBuffers();          // make the image visible
+    if (wireframe) {
+        // Nothing here yet
+    } else {
+        for (int i = 0; i < numPatches; i++) {
+            glPushMatrix();
+                glRotated(yAngle, 0, 1, 0);
+                glRotated(zAngle, 0, 0, 1);
+                glColor3f(1.0, 0.1, 0.1);
+                glBegin(GL_QUADS);
+                float*** surface = surfaces.at(i);
+                for (int u = 0; u < numdiv - 1; u++) {
+                    for (int v = 0; v < numdiv - 1; v++) {
+                        glVertex3f(surface[u][v][0], surface[u][v][1], surface[u][v][2]);
+                        glVertex3f(surface[u+1][v][0], surface[u+1][v][1], surface[u+1][v][2]);
+                        glVertex3f(surface[u+1][v+1][0], surface[u+1][v+1][1], surface[u+1][v+1][2]);
+                        glVertex3f(surface[u][v+1][0], surface[u][v+1][1], surface[u][v+1][2]);
+                    }
+                }
+                glEnd();
+            glPopMatrix();
+        }
+    }
 
+    glutSwapBuffers();
 }
 
 void reshape(int w, int h) {
-
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -81,11 +110,9 @@ void reshape(int w, int h) {
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
 }
 
 void keyboard(unsigned char key, int x, int y) {
-
     switch (key) {
         case 's':
             GLint model;
@@ -96,7 +123,10 @@ void keyboard(unsigned char key, int x, int y) {
                 glShadeModel(GL_SMOOTH);
             break;
         case 'w':
-            std::cout << "w" << std::endl;
+            if (wireframe)
+                wireframe = false;
+            else
+                wireframe = true;
             break;
         case '+':
             std::cout << "+" << std::endl;
@@ -112,11 +142,9 @@ void keyboard(unsigned char key, int x, int y) {
 
     if (glutGetWindow())
         glutPostRedisplay();
-
 }
 
 void special(int key, int x, int y) {
-
     switch (key) {
         case GLUT_KEY_LEFT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
@@ -152,7 +180,6 @@ void special(int key, int x, int y) {
             break;
     }
     glutPostRedisplay();
-
 }
 
 //****************************************************
@@ -185,12 +212,10 @@ bool isFloat(char* input) {
         }
         return false;
     }
-
     return true;
 }
 
 void parse_bez_input(char* input) {
-
     int linecount = 0;
     int patchIndex = 0;
     int rowIndex = 0;
@@ -200,11 +225,9 @@ void parse_bez_input(char* input) {
     std::ifstream file (input);
 
     if (file.is_open()) {
-
         std::cout << "Parsing .bez file..." << std::endl;
 
         while (std::getline(file, line)) {
-
             linecount++;
             char* tokens = new char[line.length() + 1];
             strcpy(tokens, line.c_str());
@@ -234,7 +257,6 @@ void parse_bez_input(char* input) {
             }
 
             if (patchIndex < numPatches) {
-
                 int i = 0;
                 if (rowIndex == 0) {
                     patch = new float**[4];
@@ -245,7 +267,6 @@ void parse_bez_input(char* input) {
                         }
                     }
                 }
-                    
 
                 while (tokens != NULL) {
                     if (i >= 12) {
@@ -278,9 +299,7 @@ void parse_bez_input(char* input) {
                     patchIndex++;
                     rowIndex = 0;
                 }
-
             }
-
         }
 
         file.close();
@@ -290,12 +309,10 @@ void parse_bez_input(char* input) {
             exit(EXIT_FAILURE);
         }
         std::cout << "Finished parsing .bez file." << std::endl;
-
     } else {
         std::cerr << "Unable to open file: " << input << std::endl;
         exit(EXIT_FAILURE);
     }
-
 }
 
 void parse_obj_input(char* input) {
@@ -303,7 +320,6 @@ void parse_obj_input(char* input) {
 }
 
 int main(int argc, char *argv[]) {
-
     if (argc < 3) {
         std::cerr << "Not enough input parameters." << std::endl;
         // exit(EXIT_FAILURE);
@@ -320,7 +336,7 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // parameter = strtof(argv[2], NULL);
+    parameter = strtof(argv[2], NULL);
     if (argc > 3) {
         int argIndex = 3;
         while (argIndex < argc) {
@@ -343,11 +359,10 @@ int main(int argc, char *argv[]) {
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutSpecialFunc(special);
-    
-    glutMainLoop();
-    
-    return 0;
 
+    glutMainLoop();
+
+    return 0;
 }
 
 //****************************************************
@@ -355,7 +370,6 @@ int main(int argc, char *argv[]) {
 //****************************************************
 
 void test_patches() {
-    // Currently does nothing
     for (int i = 0; i < numPatches; i++) {
         float*** patch = patches.at(i);
         for (int r = 0; r < 4; r++) {

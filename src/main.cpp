@@ -109,7 +109,7 @@ void reshape(int w, int h) {
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(40.0, (float) w / (float) h, 0.5f, 20.0f);
+    gluPerspective(50.0, (float) w / (float) h, 0.1f, 100.0f);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -135,11 +135,9 @@ void keyboard(unsigned char key, int x, int y) {
             }
             break;
         case '+':
-            std::cout << "+" << std::endl;
             zoom += 0.1;
             break;
         case '-':
-            std::cout << "-" << std::endl;
             zoom -= 0.1;
             break;
         case 'q':
@@ -156,37 +154,29 @@ void special(int key, int x, int y) {
     switch (key) {
         case GLUT_KEY_LEFT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
-                std::cout << "shift left" << std::endl;
                 xShift -= 0.1;
             } else {
-                std::cout << "left" << std::endl;
                 yAngle -= 5;
             }
             break;
         case GLUT_KEY_RIGHT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
-                std::cout << "shift right" << std::endl;
                 xShift += 0.1;
             } else {
-                std::cout << "right" << std::endl;
                 yAngle += 5;
             }
             break;
         case GLUT_KEY_UP:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
-                std::cout << "shift up" << std::endl;
                 yShift -= 0.1;
             } else {
-                std::cout << "up" << std::endl;
                 zAngle += 5;
             }
             break;
         case GLUT_KEY_DOWN:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
-                std::cout << "shift down" << std::endl;
                 yShift += 0.1;
             } else {
-                std::cout << "down" << std::endl;
                 zAngle -= 5;
             }
             break;

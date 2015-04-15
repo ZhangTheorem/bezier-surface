@@ -64,7 +64,7 @@ void init(){
     if (adaptive) {
         // Do adaptive shit
     } else {
-        numdiv = 1.0f / parameter + 1;
+        numdiv = ceil(1.0f / parameter) + 1;
         for (int i = 0; i < numPatches; i++) {
             Bezier::uniform_subdivide(patches.at(i), parameter, &surfaces, &normals);
         }
@@ -77,13 +77,6 @@ void display() {
     glTranslatef(xShift, yShift, zShift);
     gluLookAt(0.0, 0.0, -5.0, 0, 0, -1, 0, 1, 0);
     glRotated(-90, 1, 0, 0);
-    // glPushMatrix();
-    //     glRotated(yAngle, 0, 1, 0);
-    //     glRotated(zAngle, 0, 0, 1);
-    //     glScalef(1.0, 1.0, 1.0);
-    //     glColor3f(1.0, 0.1, 0.1);
-    //     glutSolidTeapot(1);
-    // glPopMatrix();
 
     for (int i = 0; i < numPatches; i++) {
         glPushMatrix();
@@ -133,14 +126,12 @@ void keyboard(unsigned char key, int x, int y) {
                 glShadeModel(GL_SMOOTH);
             break;
         case 'w':
-            if (wireframe){
+            if (wireframe) {
                 wireframe = false;
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            }
-                
-            else{
-                wireframe = true;
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            } else {
+                wireframe = true;
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             }
             break;
         case '+':
@@ -151,6 +142,7 @@ void keyboard(unsigned char key, int x, int y) {
             std::cout << "-" << std::endl;
             zoom -= 0.1;
             break;
+        case 'q':
         case 27:
             glutDestroyWindow(windowID);
             break;

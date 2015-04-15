@@ -38,7 +38,11 @@ std::vector<float***> surfaces;
 float lpos[] = { 1000, 1000, 1000, 1 };
 double xAngle = 0;
 double yAngle = 0;
-double zAngle = 0;
+double zAngle = 180;
+double xShift = 0.0;
+double yShift = -1.0;
+double zShift = -5.0;
+double zoom = 1.0;
 
 //****************************************************
 // OpenGL Functions
@@ -66,8 +70,9 @@ void init(){
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    glTranslatef(0.0, 0.0, -4.5);
-
+    glTranslatef(xShift, yShift, zShift);
+    gluLookAt(0.0, 0.0, -5.0, 0, 0, -1, 0, 1, 0);
+    glRotated(-90, 1, 0, 0);
     // glPushMatrix();
     //     glRotated(yAngle, 0, 1, 0);
     //     glRotated(zAngle, 0, 0, 1);
@@ -75,28 +80,23 @@ void display() {
     //     glColor3f(1.0, 0.1, 0.1);
     //     glutSolidTeapot(1);
     // glPopMatrix();
-
-    if (wireframe) {
-        // Nothing here yet
-    } else {
-        for (int i = 0; i < numPatches; i++) {
-            glPushMatrix();
-                glRotated(yAngle, 0, 1, 0);
-                glRotated(zAngle, 0, 0, 1);
-                glColor3f(1.0, 0.1, 0.1);
-                glBegin(GL_QUADS);
-                float*** surface = surfaces.at(i);
-                for (int u = 0; u < numdiv - 1; u++) {
-                    for (int v = 0; v < numdiv - 1; v++) {
-                        glVertex3f(surface[u][v][0], surface[u][v][1], surface[u][v][2]);
-                        glVertex3f(surface[u+1][v][0], surface[u+1][v][1], surface[u+1][v][2]);
-                        glVertex3f(surface[u+1][v+1][0], surface[u+1][v+1][1], surface[u+1][v+1][2]);
-                        glVertex3f(surface[u][v+1][0], surface[u][v+1][1], surface[u][v+1][2]);
-                    }
+    for (int i = 0; i < numPatches; i++) {
+        glPushMatrix();
+            glRotated(yAngle, 0, 1, 0);
+            glRotated(zAngle, 0, 0, 1);
+            glColor3f(1.0, 0.1, 0.1);
+            glBegin(GL_QUADS);
+            float*** surface = surfaces.at(i);
+            for (int u = 0; u < numdiv - 1; u++) {
+                for (int v = 0; v < numdiv - 1; v++) {
+                    glVertex3f(surface[u][v][0], surface[u][v][1], surface[u][v][2]);
+                    glVertex3f(surface[u+1][v][0], surface[u+1][v][1], surface[u+1][v][2]);
+                    glVertex3f(surface[u+1][v+1][0], surface[u+1][v+1][1], surface[u+1][v+1][2]);
+                    glVertex3f(surface[u][v+1][0], surface[u][v+1][1], surface[u][v+1][2]);
                 }
-                glEnd();
-            glPopMatrix();
-        }
+            }
+        glEnd();
+        glPopMatrix();
     }
 
     glutSwapBuffers();
@@ -123,18 +123,24 @@ void keyboard(unsigned char key, int x, int y) {
                 glShadeModel(GL_SMOOTH);
             break;
         case 'w':
-            if (wireframe)
+            if (wireframe){
                 wireframe = false;
-            else
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            }
+                
+            else{
                 wireframe = true;
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
             break;
         case '+':
             std::cout << "+" << std::endl;
+            zoom += 0.1;
             break;
         case '-':
             std::cout << "-" << std::endl;
+            zoom -= 0.1;
             break;
-        case 'q':
         case 27:
             glutDestroyWindow(windowID);
             break;
@@ -149,6 +155,7 @@ void special(int key, int x, int y) {
         case GLUT_KEY_LEFT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
                 std::cout << "shift left" << std::endl;
+                xShift -= 0.1;
             } else {
                 std::cout << "left" << std::endl;
                 yAngle -= 5;
@@ -157,6 +164,7 @@ void special(int key, int x, int y) {
         case GLUT_KEY_RIGHT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
                 std::cout << "shift right" << std::endl;
+                xShift += 0.1;
             } else {
                 std::cout << "right" << std::endl;
                 yAngle += 5;
@@ -165,6 +173,7 @@ void special(int key, int x, int y) {
         case GLUT_KEY_UP:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
                 std::cout << "shift up" << std::endl;
+                yShift -= 0.1;
             } else {
                 std::cout << "up" << std::endl;
                 zAngle += 5;
@@ -173,6 +182,7 @@ void special(int key, int x, int y) {
         case GLUT_KEY_DOWN:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
                 std::cout << "shift down" << std::endl;
+                yShift += 0.1;
             } else {
                 std::cout << "down" << std::endl;
                 zAngle -= 5;

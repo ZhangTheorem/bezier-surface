@@ -24,7 +24,9 @@
 class Bezier{
 	public:
 		static void uniform_subdivide(Vector**, float, std::vector<Vector**>*, std::vector<Vector**>*);
-		void adaptive_subdivide(Vector** patch, float error);
+		static Vector patchInterpolate(Vector** , float, float);
+        static void adaptive_subdivide(Vector** , float, std::vector<Vector**>*, std::vector<Vector**>*);
 		static Vector bernstein_basis(Vector, Vector, Vector, Vector, float);
 		static Vector curve_derivative(Vector, Vector, Vector, Vector, float);
-};
+		static void triangle_subdivide(Vector**, float, std::vector<Vector>*, std::vector<Vector>*);
+};		

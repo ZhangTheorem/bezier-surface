@@ -114,7 +114,12 @@ void Bezier::adaptive_subdivide(Vector** patch, float error, std::vector<Vector*
             top.push_back(v1); top.push_back(v2); top.push_back(v3);
             ptop.push_back(pv1); ptop.push_back(pv2); ptop.push_back(pv3); 
             triangle_subdivide(patch, error, &top, &ptop);
-            v4 = v4 + pv4;
+
+            std::vector<Vector> bot;
+            std::vector<Vector> pbot;
+            bot.push_back(v2); bot.push_back(v3); bot.push_back(v4); 
+            pbot.push_back(pv2); pbot.push_back(pv3); pbot.push_back(pv4);
+            triangle_subdivide(patch, error, &bot, &pbot);
         }
     }
 
@@ -127,7 +132,7 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
     Vector v3 = triangle->at(2);
     Vector v1v2 = (v1 - v2)*0.5; //midpoint
     Vector v2v3 = (v2 - v3)*0.5;
-    Vector v3v1 = (v3 - v1)*0.5;
+    Vector v1v3 = (v3 - v1)*0.5;
     Vector pv1 = ptriangle->at(0);
     Vector pv2 = ptriangle->at(1);
     Vector pv3 = ptriangle->at(2);
@@ -137,27 +142,236 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
     float p23u = (pv2.x - pv3.x)*0.5; //midpoint of u
     float p23v = (pv2.y - pv3.y)*0.5; //midpoint of v
     Vector pv2v3 = patchInterpolate(patch, p23u, p23v);
-    float p31u = (pv3.x - pv1.x)*0.5; //midpoint of u
-    float p31v = (pv3.y - pv1.y)*0.5; //midpoint of v
-    Vector pv3v1 = patchInterpolate(patch, p31u, p31v);
+    float p13u = (pv3.x - pv1.x)*0.5; //midpoint of u
+    float p13v = (pv3.y - pv1.y)*0.5; //midpoint of v
+    Vector pv1v3 = patchInterpolate(patch, p13u, p13v);
 
-    //for x1 x2
+    Vector p12 = Vector(p12u, p12v, 0);
+    Vector p23 = Vector(p23u, p23v, 0);
+    Vector p13 = Vector(p13u, p13v, 0);
+
+    bool e1 = true; //e1 true => split
+    bool e2 = true;
+    bool e3 = true;
     if((pv1v2 - v1v2).len() < error){
-        //this is flat
+        e1 = false;
+    }
+
+    // x2 x3 
+    if((pv2v3 - v2v3).len() < error){
+        e2 = false;
+    }
+
+    //x3 x1
+    if((pv1v3 - v1v3).len() < error){
+        e3 = false;
+    }
+
+    if (e1 && e2 && e3){
+        //all good
+        //add these points, and their normals
+    }
+    else if(!e1 && e2 && e3){
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1);
+        top.push_back(v1v2);
+        top.push_back(v3);
+        ptop.push_back(pv1);
+        ptop.push_back(p12);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v2);
+        top.push_back(v1v2);
+        bot.push_back(v3);
+        ptop.push_back(pv2);
+        ptop.push_back(p12);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &bot, &pbot);
+
+    }
+    else if(e1 && !e2 && e3){
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1);
+        top.push_back(v2v3);
+        top.push_back(v2);
+        ptop.push_back(pv1);
+        ptop.push_back(p23);
+        ptop.push_back(pv2);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v1);
+        top.push_back(v2v3);
+        bot.push_back(v3);
+        ptop.push_back(pv1);
+        ptop.push_back(p23);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &bot, &pbot);
+    }
+    else if(e1 && e2 && !e3){
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1);
+        top.push_back(v1v3);
+        top.push_back(v2);
+        ptop.push_back(pv1);
+        ptop.push_back(p13);
+        ptop.push_back(pv2);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v2);
+        top.push_back(v1v3);
+        bot.push_back(v3);
+        ptop.push_back(pv2);
+        ptop.push_back(p13);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &bot, &pbot);
+    }
+    else if(!e1 && !e2 && e3){
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1);
+        top.push_back(v1v2);
+        top.push_back(v1v3);
+        ptop.push_back(pv1);
+        ptop.push_back(p12);
+        ptop.push_back(p13);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+
+        std::vector<Vector> mid;
+        std::vector<Vector> pmid;
+        mid.push_back(v1v2);
+        mid.push_back(v1v3);
+        mid.push_back(v2);
+        pmid.push_back(p12);
+        pmid.push_back(p13);
+        pmid.push_back(pv2);
+        triangle_subdivide(patch, error, &mid, &pmid);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v2);
+        top.push_back(v1v3);
+        bot.push_back(v3);
+        ptop.push_back(pv2);
+        ptop.push_back(p13);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &bot, &pbot);
+    }
+    else if(e1 && !e2 && !e3){
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1v3);
+        top.push_back(v2v3);
+        top.push_back(v3);
+        ptop.push_back(p12);
+        ptop.push_back(p23);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+
+        std::vector<Vector> mid;
+        std::vector<Vector> pmid;
+        mid.push_back(v1);
+        mid.push_back(v2v3);
+        mid.push_back(v1v3);
+        pmid.push_back(pv1);
+        pmid.push_back(p23);
+        pmid.push_back(p13);
+        triangle_subdivide(patch, error, &mid, &pmid);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v1);
+        top.push_back(v2v3);
+        bot.push_back(v2);
+        ptop.push_back(pv1);
+        ptop.push_back(p23);
+        ptop.push_back(pv2);
+        triangle_subdivide(patch, error, &bot, &pbot);
+    }
+    else if(!e1 && e2 && !e3){
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1);
+        top.push_back(v1v2);
+        top.push_back(v3);
+        ptop.push_back(pv1);
+        ptop.push_back(p12);
+        ptop.push_back(pv3);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+
+        std::vector<Vector> mid;
+        std::vector<Vector> pmid;
+        mid.push_back(v3);
+        mid.push_back(v1v2);
+        mid.push_back(v2v3);
+        pmid.push_back(pv3);
+        pmid.push_back(p12);
+        pmid.push_back(p23);
+        triangle_subdivide(patch, error, &mid, &pmid);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v1v2);
+        top.push_back(v2);
+        bot.push_back(v2v3);
+        ptop.push_back(p12);
+        ptop.push_back(pv2);
+        ptop.push_back(p23);
+        triangle_subdivide(patch, error, &bot, &pbot);
     }
     else{
-        //not flat
+        //all bad
+        std::vector<Vector> top;
+        std::vector<Vector> ptop;
+        top.push_back(v1);
+        top.push_back(v1v2);
+        top.push_back(v1v3);
+        ptop.push_back(pv1);
+        ptop.push_back(p12);
+        ptop.push_back(p13);
+        triangle_subdivide(patch, error, &top, &ptop);
+
+        std::vector<Vector> mid;
+        std::vector<Vector> pmid;
+        mid.push_back(v2);
+        mid.push_back(v1v2);
+        mid.push_back(v2v3);
+        pmid.push_back(pv2);
+        pmid.push_back(p12);
+        pmid.push_back(p23);
+        triangle_subdivide(patch, error, &mid, &pmid);
+
+        std::vector<Vector> jung;
+        std::vector<Vector> pjung;
+        jung.push_back(v1v2);
+        jung.push_back(v2v3);
+        jung.push_back(v1v3);
+        pmid.push_back(p12);
+        pmid.push_back(p23);
+        pmid.push_back(p13);
+        triangle_subdivide(patch, error, &jung, &pjung);
+
+        std::vector<Vector> bot;
+        std::vector<Vector> pbot;
+        bot.push_back(v3);
+        top.push_back(v2v3);
+        bot.push_back(v1v3);
+        ptop.push_back(pv3);
+        ptop.push_back(p23);
+        ptop.push_back(p13);
+        triangle_subdivide(patch, error, &bot, &pbot);
     }
-    if((pv1v2 - v1v2).len() < error){
-        //this is flat
-    }
-    else{
-        //not flat
-    }
-    if((pv1v2 - v1v2).len() < error){
-        //this is flat
-    }
-    else{
-        //not flat
-    }
+
 }

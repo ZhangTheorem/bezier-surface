@@ -141,26 +141,19 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
     bool e1 = true;
     bool e2 = true;
     bool e3 = true;
-
-    //printf("%f, %f, %f\n", pv1.y, pv2.y, p12v);
-   // printf("cool %f, %f, %f, %d \n", (pv1v2 - v1v2).len(), (pv2v3 - v2v3).len(), (pv1v3 - v1v3).len(), glob);
     if((pv1v2 - v1v2).len() >= error){
         e1 = false;
     }
 
-    // x2 x3 
     if((pv2v3 - v2v3).len() >= error){
         e2 = false;
     }
 
-    //x3 x1
     if((pv1v3 - v1v3).len() >= error){
         e3 = false;
     }
     
     if (e1 && e2 && e3){
-        //all good
-        //add these points, and their normals
         Vector *tri = new Vector[3];
         Vector *norm = new Vector[3];
         tri[0] = v1;
@@ -332,7 +325,6 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
     }
     else{
-        //all bad
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);

@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <vector>
 
+
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
@@ -11,7 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <math.h>
 
 #ifndef BEZIER_H
 #include "bezier.h"
@@ -34,17 +35,17 @@ unsigned int mode = GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH;
 float parameter;
 bool objInput = false;
 bool adaptive = false;
-int wiremode = 0;               // filled == 0; wireframe == 1; hidden line == 2;
+int wiremode = 0;           
 int numPatches = 0;
 int numdiv = 0;
-std::vector<Vector**> patches;  // row, column, coord
+std::vector<Vector**> patches; 
 std::vector<Vector**> surfaces;
 std::vector<Vector**> normals;
 
 std::vector<Vector*> triangles;
 std::vector<Vector*> trinormals;
 
-float lpos[] = { 1000, 1000, 1000, 1 };
+float lpos[] = { 1000, 1000, 1000, 0 };
 double xAngle = 0;
 double yAngle = 0;
 double zAngle = 180;
@@ -140,7 +141,9 @@ void reshape(int w, int h) {
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(50.0 * fovyFactor, (float) w / (float) h, 0.1f, 100.0f);
+    float angle = fmin(50.0 * fovyFactor,  180.0f);
+    angle = fmax(0.0, angle);
+    gluPerspective(angle, (float) w / (float) h, 0.1f, 100.0f);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -180,16 +183,16 @@ void keyboard(unsigned char key, int x, int y) {
             }
             break;
         case '+':
-            fovyFactor -= 0.1;
+            fovyFactor -= 0.01;
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;
         case '-':
-            fovyFactor += 0.1;
+            fovyFactor += 0.01;
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;
-        case 'q':
+
         case 27:
             glutDestroyWindow(windowID);
             break;
@@ -401,7 +404,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    // test_patches();
 
     glutInit(&argc, argv);
     glutInitDisplayMode(mode);
@@ -421,22 +423,4 @@ int main(int argc, char *argv[]) {
     glutMainLoop();
 
     return 0;
-}
-
-//****************************************************
-// Test Functions
-//****************************************************
-
-void test_patches() {
-    for (int i = 0; i < numPatches; i++) {
-        Vector** patch = patches.at(i);
-        for (int r = 0; r < 4; r++) {
-            for (int c = 0; c < 4; c++) {
-                Vector::print(patch[r][c]);
-                std::cout << "     ";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
-    }
 }

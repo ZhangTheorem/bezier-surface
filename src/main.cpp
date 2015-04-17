@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #ifndef BEZIER_H
 #include "bezier.h"
 #endif
@@ -19,6 +20,7 @@
 #ifndef VECTOR_H
 #include "vector.h"
 #endif
+
 
 //****************************************************
 // Global Variables
@@ -38,6 +40,9 @@ int numdiv = 0;
 std::vector<Vector**> patches;  // row, column, coord
 std::vector<Vector**> surfaces;
 std::vector<Vector**> normals;
+
+std::vector<Vector*> triangles;
+std::vector<Vector*> trinormals;
 
 float lpos[] = { 1000, 1000, 1000, 1 };
 double xAngle = 0;
@@ -62,7 +67,9 @@ void init(){
     glLightfv(GL_LIGHT0, GL_POSITION, lpos);
 
     if (adaptive) {
-        // Do adaptive shit
+        for (int i = 0; i < numPatches; i++) {
+            Bezier::adaptive_subdivide(patches.at(i), parameter, &triangles, &trinormals);
+        }
     } else {
         numdiv = ceil(1.0f / parameter) + 1;
         for (int i = 0; i < numPatches; i++) {
@@ -77,28 +84,49 @@ void display() {
     glTranslatef(xShift, yShift, zShift);
     gluLookAt(0.0, 0.0, -5.0, 0, 0, -1, 0, 1, 0);
     glRotated(-90, 1, 0, 0);
-
-    for (int i = 0; i < numPatches; i++) {
+    if(!adaptive){
+        for (int i = 0; i < numPatches; i++) {
+            glPushMatrix();
+                glRotated(yAngle, 0, 1, 0);
+                glRotated(zAngle, 0, 0, 1);
+                glColor3f(1.0, 0.1, 0.1);
+                glBegin(GL_QUADS);
+                Vector** surface = surfaces.at(i);
+                Vector** normal = normals.at(i);
+                for (int u = 0; u < numdiv - 1; u++) {
+                    for (int v = 0; v < numdiv - 1; v++) {
+                        glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
+                        glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
+                        glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
+                        glVertex3f(surface[u+1][v].x, surface[u+1][v].y, surface[u+1][v].z);
+                        glNormal3f(normal[u+1][v+1].x, normal[u+1][v+1].y, normal[u+1][v+1].z);
+                        glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
+                        glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
+                        glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
+                    }
+                }
+                glEnd();
+            glPopMatrix();
+        }
+    }
+    else{
+        int numTriangles = triangles.size();
         glPushMatrix();
             glRotated(zAngle, 0, 0, 1);
             glRotated(xAngle, 1, 0, 0);
             glColor3f(1.0, 0.1, 0.1);
-            glBegin(GL_QUADS);
-            Vector** surface = surfaces.at(i);
-            Vector** normal = normals.at(i);
-            for (int u = 0; u < numdiv - 1; u++) {
-                for (int v = 0; v < numdiv - 1; v++) {
-                    glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
-                    glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
-                    glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
-                    glVertex3f(surface[u+1][v].x, surface[u+1][v].y, surface[u+1][v].z);
-                    glNormal3f(normal[u+1][v+1].x, normal[u+1][v+1].y, normal[u+1][v+1].z);
-                    glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
-                    glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
-                    glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
-                }
-            }
-            glEnd();
+            glBegin(GL_TRIANGLES);
+        for(int i = 0; i < numTriangles; i++){
+            Vector* triangle = triangles.at(i);
+            Vector* trinormal = trinormals.at(i);
+            glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
+            glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
+            glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
+            glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
+            glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
+            glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
+        }
+        glEnd();
         glPopMatrix();
     }
 

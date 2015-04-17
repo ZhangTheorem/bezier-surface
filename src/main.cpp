@@ -65,7 +65,7 @@ void init(){
     glEnable(GL_LIGHTING);
 
     glLightfv(GL_LIGHT0, GL_POSITION, lpos);
-
+    glLoadIdentity();
     if (adaptive) {
         for (int i = 0; i < numPatches; i++) {
             Bezier::adaptive_subdivide(patches.at(i), parameter, &triangles, &trinormals);
@@ -130,6 +130,7 @@ void display() {
         glPopMatrix();
     }
 
+    glFlush();
     glutSwapBuffers();
 }
 
@@ -391,6 +392,8 @@ int main(int argc, char *argv[]) {
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutSpecialFunc(special);
+
+    glutPostRedisplay();
 
     glutMainLoop();
 

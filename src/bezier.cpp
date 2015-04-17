@@ -98,35 +98,17 @@ Vector Bezier::bernstein_basis(Vector cpoint0, Vector cpoint1, Vector cpoint2, V
 }
 
 void Bezier::adaptive_subdivide(Vector** patch, float error, std::vector<Vector*>* triangles, std::vector<Vector*>* trinormals){
-    for(int i = 0; i < 3; i++){
-        float u = 0.25 * (i + 1);
-        for(int j = 0; j < 3; j++){
-            float v = 0.25 * (j + 1);
-            Vector v1 = patch[i][j];
-            Vector v2 = patch[i][j+1];
-            Vector v3 = patch[i+1][j];
-            Vector v4 = patch[i+1][j+1];
-            //the uv values for each thing
-            //fake 3D vectors, shudn't be a problem?? 
-            //I thought it'd be more consistent with the regular vectors
-            Vector pv1 = Vector(u, v, 0); 
-            Vector pv2 = Vector(u, v + 0.25, 0); 
-            Vector pv3 = Vector(u + 0.25, v, 0);
-            Vector pv4 = Vector(u + 0.25, v + 0.25, 0);
-            
-            std::vector<Vector> top;
-            std::vector<Vector> ptop;
-            top.push_back(v1); top.push_back(v2); top.push_back(v3);
-            ptop.push_back(pv1); ptop.push_back(pv2); ptop.push_back(pv3); 
-            triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
+    std::vector<Vector> top;
+    std::vector<Vector> ptop;
+    top.push_back(patch[0][0]); top.push_back(patch[3][0]); top.push_back(patch[0][3]);
+    ptop.push_back(Vector(0,0,0)); ptop.push_back(Vector(0,1,0)); ptop.push_back(Vector(1,0,0));
+    triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
 
-            std::vector<Vector> bot;
-            std::vector<Vector> pbot;
-            bot.push_back(v2); bot.push_back(v3); bot.push_back(v4); 
-            pbot.push_back(pv2); pbot.push_back(pv3); pbot.push_back(pv4);
-            triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
-        }
-    }
+    std::vector<Vector> bot;
+    std::vector<Vector> pbot;
+    bot.push_back(patch[0][3]); bot.push_back(patch[3][0]); bot.push_back(patch[3][3]);
+    pbot.push_back(Vector(1,0,0)); pbot.push_back(Vector(0,1,0)); pbot.push_back(Vector(1,1,0));
+    triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
 
 }
 
@@ -155,24 +137,27 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
     Vector p12 = Vector(p12u, p12v, 0);
     Vector p23 = Vector(p23u, p23v, 0);
     Vector p13 = Vector(p13u, p13v, 0);
-
+    
     bool e1 = true;
     bool e2 = true;
     bool e3 = true;
-    if((pv1v2 - v1v2).len() > error){
+
+    //printf("%f, %f, %f\n", pv1.y, pv2.y, p12v);
+   // printf("cool %f, %f, %f, %d \n", (pv1v2 - v1v2).len(), (pv2v3 - v2v3).len(), (pv1v3 - v1v3).len(), glob);
+    if((pv1v2 - v1v2).len() >= error){
         e1 = false;
     }
 
     // x2 x3 
-    if((pv2v3 - v2v3).len() > error){
+    if((pv2v3 - v2v3).len() >= error){
         e2 = false;
     }
 
     //x3 x1
-    if((pv1v3 - v1v3).len() > error){
+    if((pv1v3 - v1v3).len() >= error){
         e3 = false;
     }
-
+    
     if (e1 && e2 && e3){
         //all good
         //add these points, and their normals
@@ -186,26 +171,27 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         norm[1] = patchInterpolate(patch, pv2.x, pv2.y, true);
         norm[2] = patchInterpolate(patch, pv3.x, pv3.y, true);
         trinormals->push_back(norm);
+        return;
     }
     else if(!e1 && e2 && e3){
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);
-        top.push_back(v1v2);
         top.push_back(v3);
+        top.push_back(pv1v2);
         ptop.push_back(pv1);
-        ptop.push_back(p12);
         ptop.push_back(pv3);
+        ptop.push_back(p12);
         triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
 
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
         bot.push_back(v2);
-        bot.push_back(v1v2);
         bot.push_back(v3);
+        bot.push_back(pv1v2);
         pbot.push_back(pv2);
-        pbot.push_back(p12);
         pbot.push_back(pv3);
+        pbot.push_back(p12);
         triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
 
     }
@@ -213,17 +199,17 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);
-        top.push_back(v2v3);
         top.push_back(v2);
+        top.push_back(pv2v3);
         ptop.push_back(pv1);
-        ptop.push_back(p23);
         ptop.push_back(pv2);
+        ptop.push_back(p23);
         triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
 
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
         bot.push_back(v1);
-        bot.push_back(v2v3);
+        bot.push_back(pv2v3);
         bot.push_back(v3);
         pbot.push_back(pv1);
         pbot.push_back(p23);
@@ -234,7 +220,7 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);
-        top.push_back(v1v3);
+        top.push_back(pv1v3);
         top.push_back(v2);
         ptop.push_back(pv1);
         ptop.push_back(p13);
@@ -244,7 +230,7 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
         bot.push_back(v2);
-        bot.push_back(v1v3);
+        bot.push_back(pv1v3);
         bot.push_back(v3);
         pbot.push_back(pv2);
         pbot.push_back(p13);
@@ -255,96 +241,94 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);
-        top.push_back(v1v2);
-        top.push_back(v1v3);
+        top.push_back(pv1v2);
+        top.push_back(pv2v3);
         ptop.push_back(pv1);
         ptop.push_back(p12);
-        ptop.push_back(p13);
+        ptop.push_back(p23);
         triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
 
 
         std::vector<Vector> mid;
         std::vector<Vector> pmid;
-        mid.push_back(v1v2);
-        mid.push_back(v1v3);
+        mid.push_back(pv1v2);
         mid.push_back(v2);
+        mid.push_back(pv2v3);
         pmid.push_back(p12);
-        pmid.push_back(p13);
         pmid.push_back(pv2);
+        pmid.push_back(p23);
         triangle_subdivide(patch, error, &mid, &pmid, triangles, trinormals);
 
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
-        bot.push_back(v2);
-        bot.push_back(v1v3);
+        bot.push_back(v1);
+        bot.push_back(pv2v3);
         bot.push_back(v3);
-        pbot.push_back(pv2);
-        pbot.push_back(p13);
+        pbot.push_back(pv1);
+        pbot.push_back(p23);
         pbot.push_back(pv3);
         triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
     }
     else if(e1 && !e2 && !e3){
         std::vector<Vector> top;
         std::vector<Vector> ptop;
-        top.push_back(v1v3);
-        top.push_back(v2v3);
+        top.push_back(pv1v3);
+        top.push_back(pv2v3);
         top.push_back(v3);
-        ptop.push_back(p12);
+        ptop.push_back(p13);
         ptop.push_back(p23);
         ptop.push_back(pv3);
         triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
 
-
         std::vector<Vector> mid;
         std::vector<Vector> pmid;
         mid.push_back(v1);
-        mid.push_back(v2v3);
-        mid.push_back(v1v3);
+        mid.push_back(v2);
+        mid.push_back(pv1v3);
         pmid.push_back(pv1);
-        pmid.push_back(p23);
+        pmid.push_back(pv2);
         pmid.push_back(p13);
         triangle_subdivide(patch, error, &mid, &pmid, triangles, trinormals);
 
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
-        bot.push_back(v1);
-        bot.push_back(v2v3);
+        bot.push_back(pv1v3);
         bot.push_back(v2);
-        pbot.push_back(pv1);
-        pbot.push_back(p23);
+        bot.push_back(pv2v3);
+        pbot.push_back(p13);
         pbot.push_back(pv2);
+        pbot.push_back(p23);
         triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
     }
     else if(!e1 && e2 && !e3){
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);
-        top.push_back(v1v2);
-        top.push_back(v3);
+        top.push_back(pv1v2);
+        top.push_back(pv1v3);
         ptop.push_back(pv1);
         ptop.push_back(p12);
-        ptop.push_back(pv3);
+        ptop.push_back(p13);
         triangle_subdivide(patch, error, &top, &ptop, triangles, trinormals);
-
 
         std::vector<Vector> mid;
         std::vector<Vector> pmid;
+        mid.push_back(pv1v2);
         mid.push_back(v3);
-        mid.push_back(v1v2);
-        mid.push_back(v2v3);
-        pmid.push_back(pv3);
+        mid.push_back(pv1v3);
         pmid.push_back(p12);
-        pmid.push_back(p23);
+        pmid.push_back(pv3);
+        pmid.push_back(p13);
         triangle_subdivide(patch, error, &mid, &pmid, triangles, trinormals);
 
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
-        bot.push_back(v1v2);
+        bot.push_back(pv1v2);
         bot.push_back(v2);
-        bot.push_back(v2v3);
+        bot.push_back(v3);
         pbot.push_back(p12);
         pbot.push_back(pv2);
-        pbot.push_back(p23);
+        pbot.push_back(pv3);
         triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
     }
     else{
@@ -352,8 +336,8 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
         std::vector<Vector> top;
         std::vector<Vector> ptop;
         top.push_back(v1);
-        top.push_back(v1v2);
-        top.push_back(v1v3);
+        top.push_back(pv1v2);
+        top.push_back(pv1v3);
         ptop.push_back(pv1);
         ptop.push_back(p12);
         ptop.push_back(p13);
@@ -361,19 +345,19 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
 
         std::vector<Vector> mid;
         std::vector<Vector> pmid;
+        mid.push_back(pv1v2);
         mid.push_back(v2);
-        mid.push_back(v1v2);
-        mid.push_back(v2v3);
-        pmid.push_back(pv2);
+        mid.push_back(pv2v3);
         pmid.push_back(p12);
+        pmid.push_back(pv2);
         pmid.push_back(p23);
         triangle_subdivide(patch, error, &mid, &pmid, triangles, trinormals);
 
         std::vector<Vector> jung;
         std::vector<Vector> pjung;
-        jung.push_back(v1v2);
-        jung.push_back(v2v3);
-        jung.push_back(v1v3);
+        jung.push_back(pv1v2);
+        jung.push_back(pv2v3);
+        jung.push_back(pv1v3);
         pjung.push_back(p12);
         pjung.push_back(p23);
         pjung.push_back(p13);
@@ -381,11 +365,11 @@ void Bezier::triangle_subdivide(Vector** patch, float error, std::vector<Vector>
 
         std::vector<Vector> bot;
         std::vector<Vector> pbot;
+        bot.push_back(pv2v3);
         bot.push_back(v3);
-        bot.push_back(v2v3);
-        bot.push_back(v1v3);
-        pbot.push_back(pv3);
+        bot.push_back(pv1v3);
         pbot.push_back(p23);
+        pbot.push_back(pv3);
         pbot.push_back(p13);
         triangle_subdivide(patch, error, &bot, &pbot, triangles, trinormals);
     }

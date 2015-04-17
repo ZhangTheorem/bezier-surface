@@ -34,10 +34,10 @@ unsigned int mode = GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH;
 float parameter;
 bool objInput = false;
 bool adaptive = false;
-bool wireframe = false;
+int wiremode = 0;               // filled == 0; wireframe == 1; hidden line == 2;
 int numPatches = 0;
 int numdiv = 0;
-std::vector<Vector**> patches; // row, column, coord
+std::vector<Vector**> patches;  // row, column, coord
 std::vector<Vector**> surfaces;
 std::vector<Vector**> normals;
 
@@ -51,7 +51,7 @@ double zAngle = 180;
 double xShift = 0.0;
 double yShift = -1.0;
 double zShift = -5.0;
-double zoom = 1.0;
+double fovyFactor = 1.0;
 
 //****************************************************
 // OpenGL Functions
@@ -112,8 +112,8 @@ void display() {
     else{
         int numTriangles = triangles.size();
         glPushMatrix();
-            glRotated(yAngle, 0, 1, 0);
             glRotated(zAngle, 0, 0, 1);
+            glRotated(xAngle, 1, 0, 0);
             glColor3f(1.0, 0.1, 0.1);
             glBegin(GL_TRIANGLES);
         for(int i = 0; i < numTriangles; i++){
@@ -138,13 +138,14 @@ void reshape(int w, int h) {
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(50.0, (float) w / (float) h, 0.1f, 100.0f);
+    gluPerspective(50.0 * fovyFactor, (float) w / (float) h, 0.1f, 100.0f);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
 
 void keyboard(unsigned char key, int x, int y) {
+    int window[4];
     switch (key) {
         case 's':
             GLint model;
@@ -155,19 +156,36 @@ void keyboard(unsigned char key, int x, int y) {
                 glShadeModel(GL_SMOOTH);
             break;
         case 'w':
-            if (wireframe) {
-                wireframe = false;
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            } else {
-                wireframe = true;
+            if (wiremode != 1) {
+                wiremode = 1;
+                glDisable(GL_CULL_FACE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            } else {
+                wiremode = 0;
+                glDisable(GL_CULL_FACE);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            }
+            break;
+        case 'h':
+            if (wiremode != 2) {
+                wiremode = 2;
+                glEnable(GL_CULL_FACE);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            } else {
+                wiremode = 0;
+                glDisable(GL_CULL_FACE);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
         case '+':
-            zoom += 0.1;
+            fovyFactor -= 0.1;
+            glGetIntegerv(GL_VIEWPORT, window);
+            glutReshapeWindow(window[2], window[3]);
             break;
         case '-':
-            zoom -= 0.1;
+            fovyFactor += 0.1;
+            glGetIntegerv(GL_VIEWPORT, window);
+            glutReshapeWindow(window[2], window[3]);
             break;
         case 'q':
         case 27:
@@ -185,28 +203,28 @@ void special(int key, int x, int y) {
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
                 xShift -= 0.1;
             } else {
-                yAngle -= 5;
+                zAngle -= 5;
             }
             break;
         case GLUT_KEY_RIGHT:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
                 xShift += 0.1;
             } else {
-                yAngle += 5;
+                zAngle += 5;
             }
             break;
         case GLUT_KEY_UP:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
-                yShift -= 0.1;
+                yShift += 0.1;
             } else {
-                zAngle += 5;
+                xAngle += 5;
             }
             break;
         case GLUT_KEY_DOWN:
             if (glutGetModifiers() == GLUT_ACTIVE_SHIFT) {
-                yShift += 0.1;
+                yShift -= 0.1;
             } else {
-                zAngle -= 5;
+                xAngle -= 5;
             }
             break;
     }
@@ -333,6 +351,8 @@ void parse_bez_input(char* input) {
                     rowIndex = 0;
                 }
             }
+
+            delete[] tokens;
         }
 
         file.close();
@@ -355,7 +375,7 @@ void parse_obj_input(char* input) {
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         std::cerr << "Not enough input parameters." << std::endl;
-        // exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 
     char* ext = strpbrk(argv[1], ".");

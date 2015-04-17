@@ -15,8 +15,8 @@ void Bezier::uniform_subdivide(Vector** patch, float step, std::vector<Vector**>
         normal[r] = new Vector[numdiv];
     }
 
-    Vector* ucurve = new Vector[4];
-    Vector* vcurve = new Vector[4];
+    Vector ucurve[4];
+    Vector vcurve[4];
 
     for (int i = 0; i < numdiv; i++) {
         float u = min(i * step, 1);

@@ -79,7 +79,9 @@ void init(){
 }
 
 void display() {
+    glClearColor(0,0,0,0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_MODELVIEW);    
     glLoadIdentity();
     glTranslatef(xShift, yShift, zShift);
     gluLookAt(0.0, 0.0, -5.0, 0, 0, -1, 0, 1, 0);
@@ -87,7 +89,7 @@ void display() {
     if(!adaptive){
         for (int i = 0; i < numPatches; i++) {
             glPushMatrix();
-                glRotated(yAngle, 0, 1, 0);
+                glRotated(xAngle, 1, 0, 0);
                 glRotated(zAngle, 0, 0, 1);
                 glColor3f(1.0, 0.1, 0.1);
                 glBegin(GL_QUADS);
@@ -112,8 +114,8 @@ void display() {
     else{
         int numTriangles = triangles.size();
         glPushMatrix();
-            glRotated(zAngle, 0, 0, 1);
             glRotated(xAngle, 1, 0, 0);
+            glRotated(zAngle, 0, 0, 1);
             glColor3f(1.0, 0.1, 0.1);
             glBegin(GL_TRIANGLES);
         for(int i = 0; i < numTriangles; i++){
@@ -408,12 +410,13 @@ int main(int argc, char *argv[]) {
     windowID = glutCreateWindow(argv[0]);
 
     init();
+    glutIdleFunc(glutPostRedisplay);
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
     glutSpecialFunc(special);
 
-    glutPostRedisplay();
+    
 
     glutMainLoop();
 

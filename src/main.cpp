@@ -53,7 +53,8 @@ double zAngle = 180;
 double xShift = 0.0;
 double yShift = -1.0;
 double zShift = -5.0;
-double fovyFactor = 1.0;
+double nearVal = 1.0;
+double minZ = -1.0;
 
 //****************************************************
 // OpenGL Functions
@@ -78,6 +79,28 @@ void init(){
             Bezier::uniform_subdivide(patches.at(i), parameter, &surfaces, &normals);
         }
     }
+    if (adaptive || objInput) {
+        int numTriangles = triangles.size();
+        for (int i = 0; i < numTriangles; i++) {
+            Vector* triangle = triangles.at(i);
+            for (int j = 0; j < 3; j++) {
+                if (triangle[j].z < minZ) {
+                    minZ = triangle[j].z;
+                }
+            }
+        }
+    } else {
+        for (int i = 0; i < numPatches; i++) {
+            Vector** patch = patches.at(i);
+            for (int r = 0; r < 4; r++) {
+                for (int c = 0; c < 4; c++) {
+                    if (patch[r][c].z < minZ) {
+                        minZ = patch[r][c].z;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void display() {
@@ -86,38 +109,55 @@ void display() {
     glMatrixMode(GL_MODELVIEW);    
     glLoadIdentity();
     glTranslatef(xShift, yShift, zShift);
-    gluLookAt(0.0, 0.0, -5.0, 0, 0, -1, 0, 1, 0);
+    gluLookAt(0.0, 0.0, minZ - 0.1, 0, 0, -1, 0, 1, 0);
     glRotated(-90, 1, 0, 0);
     if (adaptive || objInput) {
         int numTriangles = triangles.size();
         glPushMatrix();
             glRotated(xAngle, 1, 0, 0);
             glRotated(zAngle, 0, 0, 1);
-            glColor3f(1.0, 0.1, 0.1);
-            glBegin(GL_TRIANGLES);
             for (int i = 0; i < numTriangles; i++) {
                 Vector* triangle = triangles.at(i);
                 Vector* trinormal = trinormals.at(i);
+                glBegin(GL_TRIANGLES);
+                glColor3f(1.0, 0.1, 0.1);
                 glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
                 glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
                 glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
                 glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
                 glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
                 glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
+                glEnd();
+
+                if (wiremode == 2) {
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    glEnable(GL_POLYGON_OFFSET_FILL);
+                    glPolygonOffset(1.0, 1.0);
+                    glBegin(GL_TRIANGLES);
+                    glColor3f(0.0, 0.0, 0.0);
+                    glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
+                    glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
+                    glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
+                    glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
+                    glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
+                    glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
+                    glEnd();
+                    glDisable(GL_POLYGON_OFFSET_FILL);
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                }
             }
-            glEnd();
         glPopMatrix();
     } else {
         for (int i = 0; i < numPatches; i++) {
             glPushMatrix();
                 glRotated(xAngle, 1, 0, 0);
                 glRotated(zAngle, 0, 0, 1);
-                glColor3f(1.0, 0.1, 0.1);
-                glBegin(GL_QUADS);
                 Vector** surface = surfaces.at(i);
                 Vector** normal = normals.at(i);
                 for (int u = 0; u < numdiv - 1; u++) {
                     for (int v = 0; v < numdiv - 1; v++) {
+                        glBegin(GL_QUADS);
+                        glColor3f(1.0, 0.1, 0.1);
                         glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
                         glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
                         glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
@@ -126,9 +166,28 @@ void display() {
                         glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
                         glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
                         glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
+                        glEnd();
+
+                        if (wiremode == 2) {
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                            glEnable(GL_POLYGON_OFFSET_FILL);
+                            glPolygonOffset(1.0, 1.0);
+                            glBegin(GL_QUADS);
+                            glColor3f(0.0, 0.0, 0.0);
+                            glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
+                            glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
+                            glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
+                            glVertex3f(surface[u+1][v].x, surface[u+1][v].y, surface[u+1][v].z);
+                            glNormal3f(normal[u+1][v+1].x, normal[u+1][v+1].y, normal[u+1][v+1].z);
+                            glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
+                            glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
+                            glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
+                            glEnd();
+                            glDisable(GL_POLYGON_OFFSET_FILL);
+                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                        }
                     }
                 }
-                glEnd();
             glPopMatrix();
         }
     }
@@ -141,9 +200,7 @@ void reshape(int w, int h) {
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    float angle = fmin(50.0 * fovyFactor,  180.0f);
-    angle = fmax(0.0, angle);
-    gluPerspective(angle, (float) w / (float) h, 0.1f, 100.0f);
+    glFrustum(-1.0, 1.0, -1.0, 1.0, nearVal, 20.0);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -171,26 +228,22 @@ void keyboard(unsigned char key, int x, int y) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
-        /**
         case 'h':
             if (wiremode != 2) {
                 wiremode = 2;
-                glEnable(GL_CULL_FACE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             } else {
                 wiremode = 0;
-                glDisable(GL_CULL_FACE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
-        **/
         case '+':
-            fovyFactor -= 0.01;
+            nearVal += 0.01;
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;
         case '-':
-            fovyFactor += 0.01;
+            nearVal -= 0.01;
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;

@@ -171,6 +171,7 @@ void keyboard(unsigned char key, int x, int y) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
+        /**
         case 'h':
             if (wiremode != 2) {
                 wiremode = 2;
@@ -182,6 +183,7 @@ void keyboard(unsigned char key, int x, int y) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
+        **/
         case '+':
             fovyFactor -= 0.01;
             glGetIntegerv(GL_VIEWPORT, window);

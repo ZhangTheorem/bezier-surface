@@ -409,8 +409,10 @@ void parse_obj_input(char* input) {
                         file.close();
                         exit(EXIT_FAILURE);
                     }
-                    values[i] = atof(tokens);
+                    if (i < 3)
+                        values[i] = atof(tokens);
                     i++;
+                    tokens = strtok(NULL, " \n\t\r");
                 }
 
                 if (i > 3) {
@@ -436,8 +438,10 @@ void parse_obj_input(char* input) {
                         file.close();
                         exit(EXIT_FAILURE);
                     }
-                    values[i] = atof(tokens);
+                    if (i < 3)
+                        values[i] = atof(tokens);
                     i++;
+                    tokens = strtok(NULL, " \n\t\r");
                 }
 
                 if (i > 3) {

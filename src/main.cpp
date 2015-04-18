@@ -497,7 +497,7 @@ void parse_obj_input(char* input) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
+    if (argc < 2) {
         std::cerr << "Not enough input parameters." << std::endl;
         exit(EXIT_FAILURE);
     }
@@ -513,7 +513,14 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    parameter = strtof(argv[2], NULL);
+    if (!objInput && argc < 3) {
+        std::cerr << "Not enough input parameters." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (!objInput)
+        parameter = strtof(argv[2], NULL);
+    
     if (argc > 3) {
         int argIndex = 3;
         while (argIndex < argc) {

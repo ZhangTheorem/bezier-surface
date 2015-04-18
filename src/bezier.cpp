@@ -35,9 +35,9 @@ void Bezier::uniform_subdivide(Vector** patch, float step, std::vector<Vector**>
             Vector dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
             Vector norm = Vector::cross(dPdu, dPdv);
             if(norm.len() < 0.0001){
-                dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u + 0.1f);
-                dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v + 0.1f);
-                norm = patchInterpolate(patch, u + 0.1, v + 0.1, true);
+                dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u + 0.01f);
+                dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v + 0.01f);
+                norm = patchInterpolate(patch, u + 0.01, v + 0.01, true);
             }
             surface[i][j] = bernstein_basis(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
             normal[i][j] = norm.normalize();
@@ -63,9 +63,9 @@ Vector Bezier::patchInterpolate(Vector** patch, float u, float v, bool normal) {
         Vector dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
         Vector norm = Vector::cross(dPdu, dPdv);
         if(norm.len() < 0.0001){
-            dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u + 0.1f);
-            dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v + 0.1f);
-            norm = patchInterpolate(patch, u + 0.1, v + 0.1, true);
+            dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u + 0.01f);
+            dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v + 0.01f);
+            norm = patchInterpolate(patch, u + 0.01, v + 0.01, true);
         }
         return norm.normalize();
     } else {

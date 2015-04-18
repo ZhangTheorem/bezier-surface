@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <pthread.h>
 
 #ifndef BEZIER_H
 #include "bezier.h"
@@ -59,6 +60,12 @@ double minZ = -1.0;
 //****************************************************
 // OpenGL Functions
 //****************************************************
+
+void junk() {
+    int i;
+    i = pthread_getconcurrency();
+    i++;
+};
 
 void init(){
     glEnable(GL_DEPTH_TEST);

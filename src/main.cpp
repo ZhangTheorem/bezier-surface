@@ -518,11 +518,16 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (!objInput)
+    int argIndex;
+
+    if (!objInput) {
         parameter = strtof(argv[2], NULL);
-    
-    if (argc > 3) {
-        int argIndex = 3;
+        argIndex = 3;
+    } else {
+        argIndex = 2;
+    }
+
+    if (argc > argIndex) {
         while (argIndex < argc) {
             if (strcmp(argv[argIndex], "-a") == 0)
                 adaptive = true;

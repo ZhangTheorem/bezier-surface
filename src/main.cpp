@@ -461,7 +461,7 @@ void parse_obj_input(char* input) {
                     Vector v3 = vertices.at((int) values[2]);
                     Vector U = v2 - v1;
                     Vector V = v3 - v1;
-                    Vector normal = Vector::cross(U, V);
+                    Vector normal = Vector::cross(U, V).normalize();
                     Vector *tri = new Vector[3];
                     Vector *norm = new Vector[3];
                     tri[0] = v1; tri[1] = v2; tri[2] = v3;

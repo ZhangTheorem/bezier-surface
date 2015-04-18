@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <stdexcept>
 #include <cstdio>
 #include <cstdlib>
 #include <vector>
@@ -87,7 +88,26 @@ void display() {
     glTranslatef(xShift, yShift, zShift);
     gluLookAt(0.0, 0.0, -5.0, 0, 0, -1, 0, 1, 0);
     glRotated(-90, 1, 0, 0);
-    if(!adaptive){
+    if (adaptive || objInput) {
+        int numTriangles = triangles.size();
+        glPushMatrix();
+            glRotated(xAngle, 1, 0, 0);
+            glRotated(zAngle, 0, 0, 1);
+            glColor3f(1.0, 0.1, 0.1);
+            glBegin(GL_TRIANGLES);
+            for (int i = 0; i < numTriangles; i++) {
+                Vector* triangle = triangles.at(i);
+                Vector* trinormal = trinormals.at(i);
+                glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
+                glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
+                glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
+                glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
+                glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
+                glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
+            }
+            glEnd();
+        glPopMatrix();
+    } else {
         for (int i = 0; i < numPatches; i++) {
             glPushMatrix();
                 glRotated(xAngle, 1, 0, 0);
@@ -111,26 +131,6 @@ void display() {
                 glEnd();
             glPopMatrix();
         }
-    }
-    else{
-        int numTriangles = triangles.size();
-        glPushMatrix();
-            glRotated(xAngle, 1, 0, 0);
-            glRotated(zAngle, 0, 0, 1);
-            glColor3f(1.0, 0.1, 0.1);
-            glBegin(GL_TRIANGLES);
-        for(int i = 0; i < numTriangles; i++){
-            Vector* triangle = triangles.at(i);
-            Vector* trinormal = trinormals.at(i);
-            glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
-            glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
-            glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
-            glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
-            glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
-            glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
-        }
-        glEnd();
-        glPopMatrix();
     }
 
     glFlush();
@@ -288,6 +288,7 @@ void parse_bez_input(char* input) {
             tokens = strtok(tokens, " \n\t\r");
 
             if (tokens == NULL) {
+                delete[] tokens;
                 continue;
             }
 
@@ -374,7 +375,119 @@ void parse_bez_input(char* input) {
 }
 
 void parse_obj_input(char* input) {
-    // Currently does nothing
+    int linecount = 0;
+    std::vector<Vector> vertices;
+    std::string line;
+    std::ifstream file (input);
+
+    // Create offset and provide "nonexistent" coordinate
+    vertices.push_back(Vector(0, 0, 0));
+
+    if (file.is_open()) {
+        std::cout << "Parsing .obj file..." << std::endl;
+
+        while (std::getline(file, line)) {
+            linecount++;
+            int i = 0;
+            float values[3] = {0, 0, 0};
+            char* tokens = new char[line.length() + 1];
+            strcpy(tokens, line.c_str());
+            tokens = strtok(tokens, " \n\t\r");
+
+            if (tokens == NULL) {
+                delete[] tokens;
+                continue;
+            } else if (strcmp(tokens, "v") == 0) {
+
+                tokens = strtok(NULL, " \n\t\r");
+                while (tokens != NULL) {
+                    if (!isFloat(tokens)) {
+                        std::cerr << "Line " << linecount <<
+                                " was not formatted correctly." << std::endl;
+                        file.close();
+                        exit(EXIT_FAILURE);
+                    }
+                    values[i] = atof(tokens);
+                    i++;
+                }
+
+                if (i > 3) {
+                    std::cerr << "Line " << linecount <<
+                            " contains extra values, which were ignored." <<
+                            std::endl;
+                } else if (i < 3) {
+                    std::cerr << "Line " << linecount <<
+                            " does not contain enough values." << std::endl;
+                    file.close();
+                    exit(EXIT_FAILURE);
+                }
+
+                vertices.push_back(Vector(values[0], values[1], values[2]));
+
+            } else if (strcmp(tokens, "f") == 0) {
+
+                tokens = strtok(NULL, " \n\t\r");
+                while (tokens != NULL) {
+                    if (!isdigit(tokens[0])) {
+                        std::cerr << "Line " << linecount <<
+                                " was not formatted correctly." << std::endl;
+                        file.close();
+                        exit(EXIT_FAILURE);
+                    }
+                    values[i] = atof(tokens);
+                    i++;
+                }
+
+                if (i > 3) {
+                    std::cerr << "Line " << linecount <<
+                            " contains extra values, which were ignored." <<
+                            std::endl;
+                } else if (i < 3) {
+                    std::cerr << "Line " << linecount <<
+                            " does not contain enough values." << std::endl;
+                    file.close();
+                    exit(EXIT_FAILURE);
+                }
+
+                try {
+                    Vector v1 = vertices.at((int) values[0]);
+                    Vector v2 = vertices.at((int) values[1]);
+                    Vector v3 = vertices.at((int) values[2]);
+                    Vector U = v2 - v1;
+                    Vector V = v3 - v1;
+                    Vector normal = Vector::cross(U, V);
+                    Vector *tri = new Vector[3];
+                    Vector *norm = new Vector[3];
+                    tri[0] = v1; tri[1] = v2; tri[2] = v3;
+                    triangles.push_back(tri);
+                    norm[0] = norm[1] = norm[2] = normal;
+                    trinormals.push_back(norm);
+                } catch (const std::out_of_range& e) {
+                    std::cerr << "Line " << linecount <<
+                            " does not contain valid parameters." << std::endl;
+                    file.close();
+                    exit(EXIT_FAILURE);
+                }
+
+            } else if (tokens[0] == '#') {
+                delete[] tokens;
+                continue;
+            } else {
+                std::cerr << "Command \"" << tokens << "\" of line " <<
+                        linecount << " unrecognized." << std::endl;
+                file.close();
+                exit(EXIT_FAILURE);
+            }
+
+            delete[] tokens;
+        }
+
+        file.close();
+        std::cout << "Finished parsing .obj file." << std::endl;
+    } else {
+        std::cerr << "Unable to open file: " << input << std::endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char *argv[]) {

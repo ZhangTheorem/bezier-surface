@@ -4,6 +4,8 @@
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
 
+#define abst(x) ((x)<0 ? -(x) : (x))
+
 void Bezier::uniform_subdivide(Vector** patch, float step, std::vector<Vector**>* surfaces, std::vector<Vector**>* normals){
     int numdiv = ceil(1.0f / step) + 1;
     Vector** surface = new Vector*[numdiv];
@@ -30,10 +32,16 @@ void Bezier::uniform_subdivide(Vector** patch, float step, std::vector<Vector**>
             ucurve[1] = bernstein_basis(patch[0][1], patch[1][1], patch[2][1], patch[3][1], v);
             ucurve[2] = bernstein_basis(patch[0][2], patch[1][2], patch[2][2], patch[3][2], v);
             ucurve[3] = bernstein_basis(patch[0][3], patch[1][3], patch[2][3], patch[3][3], v);
-            surface[i][j] = bernstein_basis(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
             Vector dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
             Vector dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
-            normal[i][j] = Vector::cross(dPdu, dPdv).normalize();
+            Vector norm = Vector::cross(dPdu, dPdv);
+            if(norm.len() < 0.0001){
+                dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u + 0.1f);
+                dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v + 0.1f);
+                norm = patchInterpolate(patch, u + 0.1, v + 0.1, true);
+            }
+            surface[i][j] = bernstein_basis(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
+            normal[i][j] = norm.normalize();
         }
     }
     surfaces->push_back(surface);
@@ -54,11 +62,17 @@ Vector Bezier::patchInterpolate(Vector** patch, float u, float v, bool normal){
     if(normal){
         Vector dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
         Vector dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
-        Vector norm = Vector::cross(dPdu, dPdv).normalize();
-        return norm;
+        Vector norm = Vector::cross(dPdu, dPdv);
+        if(norm.len() < 0.0001){
+            dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u + 0.1f);
+            dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v + 0.1f);
+            norm = patchInterpolate(patch, u + 0.1, v + 0.1, true);
+        }
+        return norm.normalize();
     }
     else{
         Vector point = bernstein_basis(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
+    
         return point;
     }
     

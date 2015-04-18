@@ -1,5 +1,7 @@
 #include "vector.h"
 
+#define abst(x) ((x)<0 ? -(x) : (x))
+
 //****************************************************
 // Vector
 //****************************************************
@@ -47,6 +49,14 @@ Vector Vector::point_multiply(Vector a, Vector b) {
 
   return result;
 
+}
+
+
+bool equal(Vector u, Vector v){
+  if(abst(u.x - v.x) < 0.0000001 && abst(u.y - v.y) < 0.0000001 && abst(u.y - v.y) < 0.0000001)
+      return true;
+  else
+      return false;
 }
 
 void Vector::clamp() {

@@ -11,6 +11,9 @@
 #include <cmath>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 //****************************************************
 // Vector
@@ -34,6 +37,7 @@ class Vector {                                        // note: vectors are simpl
     static Vector cross(Vector a, Vector b);
     static float dot(Vector a, Vector b);
     static Vector point_multiply(Vector a, Vector b);
+    static bool equal(Vector, Vector);
     
     Vector();
     Vector(float, float, float);

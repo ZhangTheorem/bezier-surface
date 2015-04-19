@@ -167,9 +167,13 @@ Vector Bezier::curve_interpolate(Vector** patch, float u, float v) {
         ucurve[1] = bernstein_basis(patch[0][1], patch[1][1], patch[2][1], patch[3][1], v);
         ucurve[2] = bernstein_basis(patch[0][2], patch[1][2], patch[2][2], patch[3][2], v);
         ucurve[3] = bernstein_basis(patch[0][3], patch[1][3], patch[2][3], patch[3][3], v);
-        Vector dPdu = curve_second_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
-        Vector dPdv = curve_second_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
-        return Vector(dPdu.x * dPdv.x, dPdu.y * dPdv.y, dPdu.z * dPdv.z).normalize();
+        Vector dPdu = curve_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
+        Vector dPdv = curve_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
+        Vector d2Pdu2 = curve_second_derivative(ucurve[0], ucurve[1], ucurve[2], ucurve[3], u);
+        Vector d2Pdv2 = curve_second_derivative(vcurve[0], vcurve[1], vcurve[2], vcurve[3], v);
+        Vector ucurvature = Vector::cross(dPdu, d2Pdu2) / pow(dPdu.len(), 3);
+        Vector vcurvature = Vector::cross(dPdv, d2Pdv2) / pow(dPdv.len(), 3);
+        return Vector(ucurvature.x * vcurvature.x, ucurvature.y * vcurvature.y, ucurvature.z * vcurvature.z).normalize();
     }
     return Vector();
 }

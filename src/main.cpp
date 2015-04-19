@@ -105,26 +105,27 @@ void display() {
             Vector* triangle = triangles.at(i);
             Vector* trinormal = trinormals.at(i);
             Vector* triparam = triparams.at(i);
-            Vector color1 = Vector(1, 0.1, 0.1);
-            Vector color2 = Vector(1, 0.1, 0.1);
-            Vector color3 = Vector(1, 0.1, 0.1);
+            Vector color1 = Vector(0, 0.9, -0.9);
+            Vector color2 = Vector(0, 0.9, -0.9);
+            Vector color3 = Vector(0, 0.9, -0.9);
             if (curvature) {
                 if (objInput) {
                     // stuff
                 } else {
                     color1 = Bezier::curve_interpolate(patches.at(triparam[0].z), triparam[0].x, triparam[0].y);
+                    Vector::print(color1); std::cout << std::endl;
                     color2 = Bezier::curve_interpolate(patches.at(triparam[1].z), triparam[1].x, triparam[1].y);
                     color3 = Bezier::curve_interpolate(patches.at(triparam[2].z), triparam[2].x, triparam[2].y);
                 }
             }
             glBegin(GL_TRIANGLES);
-            glColor3f(color1.x, color1.y, color1.z);
+            glColor3f(1 - color1.x, 1 - fabs(color1.y), 1 + color1.z);
             glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
             glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
-            glColor3f(color2.x, color2.y, color2.z);
+            glColor3f(1 - color1.x, 1 - fabs(color1.y), 1 + color1.z);
             glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
             glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
-            glColor3f(color3.x, color3.y, color3.z);
+            glColor3f(1 - color1.x, 1 - fabs(color1.y), 1 + color1.z);
             glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
             glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
             glEnd();
@@ -206,12 +207,12 @@ void keyboard(unsigned char key, int x, int y) {
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;
-        case 'c':
-            if (curvature)
-                curvature = false;
-            else
-                curvature = true;
-            break;
+        // case 'c':
+        //     if (curvature)
+        //         curvature = false;
+        //     else
+        //         curvature = true;
+        //     break;
         case 27:
             glutDestroyWindow(windowID);
             break;

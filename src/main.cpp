@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include <vector>
 
-
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
@@ -13,8 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include <pthread.h>
+
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 #ifndef BEZIER_H
 #include "bezier.h"
@@ -23,7 +24,6 @@
 #ifndef VECTOR_H
 #include "vector.h"
 #endif
-
 
 //****************************************************
 // Global Variables
@@ -36,22 +36,22 @@ unsigned int mode = GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH;
 
 float parameter;
 bool objInput = false;
+float smoothangle = 80;
+bool objOutput = false;
 bool adaptive = false;
+bool curvature = false;
 int wiremode = 0;           
 int numPatches = 0;
-int numdiv = 0;
 std::vector<Vector**> patches; 
-std::vector<Vector**> surfaces;
-std::vector<Vector**> normals;
-
 std::vector<Vector*> triangles;
 std::vector<Vector*> trinormals;
+std::vector<Vector*> triparams;
 
 float lpos[] = { 1000, 1000, 1000, 0 };
 double xAngle = 0;
 double yAngle = 0;
 double zAngle = 180;
-double xShift = 0.0;
+double xShift = 0;
 double yShift = -1.0;
 double zShift = -5.0;
 double nearVal = 1.0;
@@ -76,58 +76,65 @@ void init(){
 
     glLightfv(GL_LIGHT0, GL_POSITION, lpos);
     glLoadIdentity();
-    if (adaptive) {
-        for (int i = 0; i < numPatches; i++) {
-            Bezier::adaptive_subdivide(patches.at(i), parameter, &triangles, &trinormals);
-        }
-    } else {
-        numdiv = ceil(1.0f / parameter) + 1;
-        for (int i = 0; i < numPatches; i++) {
-            Bezier::uniform_subdivide(patches.at(i), parameter, &surfaces, &normals);
-        }
-    }
-    if (adaptive || objInput) {
-        int numTriangles = triangles.size();
-        for (int i = 0; i < numTriangles; i++) {
-            Vector* triangle = triangles.at(i);
-            for (int j = 0; j < 3; j++) {
-                if (triangle[j].z < minZ) {
-                    minZ = triangle[j].z;
-                }
-            }
-        }
-    } else {
-        for (int i = 0; i < numPatches; i++) {
-            Vector** patch = patches.at(i);
-            for (int r = 0; r < 4; r++) {
-                for (int c = 0; c < 4; c++) {
-                    if (patch[r][c].z < minZ) {
-                        minZ = patch[r][c].z;
-                    }
-                }
+
+    int numTriangles = triangles.size();
+    for (int i = 0; i < numTriangles; i++) {
+        Vector* triangle = triangles.at(i);
+        for (int j = 0; j < 3; j++) {
+            if (triangle[j].z < minZ) {
+                minZ = triangle[j].z;
             }
         }
     }
 }
 
 void display() {
-    glClearColor(0,0,0,0);
+    glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glMatrixMode(GL_MODELVIEW);    
     glLoadIdentity();
     glTranslatef(xShift, yShift, zShift);
     gluLookAt(0.0, 0.0, minZ - 0.1, 0, 0, -1, 0, 1, 0);
     glRotated(-90, 1, 0, 0);
-    if (adaptive || objInput) {
-        int numTriangles = triangles.size();
-        glPushMatrix();
-            glRotated(xAngle, 1, 0, 0);
-            glRotated(zAngle, 0, 0, 1);
-            for (int i = 0; i < numTriangles; i++) {
-                Vector* triangle = triangles.at(i);
-                Vector* trinormal = trinormals.at(i);
+
+    int numTriangles = triangles.size();
+    glPushMatrix();
+        glRotated(xAngle, 1, 0, 0);
+        glRotated(zAngle, 0, 0, 1);
+        for (int i = 0; i < numTriangles; i++) {
+            Vector* triangle = triangles.at(i);
+            Vector* trinormal = trinormals.at(i);
+            Vector* triparam = triparams.at(i);
+            Vector color1 = Vector(1, 0.1, 0.1);
+            Vector color2 = Vector(1, 0.1, 0.1);
+            Vector color3 = Vector(1, 0.1, 0.1);
+            if (curvature) {
+                if (objInput) {
+                    // stuff
+                } else {
+                    color1 = Bezier::curve_interpolate(patches.at(triparam[0].z), triparam[0].x, triparam[0].y);
+                    color2 = Bezier::curve_interpolate(patches.at(triparam[1].z), triparam[1].x, triparam[1].y);
+                    color3 = Bezier::curve_interpolate(patches.at(triparam[2].z), triparam[2].x, triparam[2].y);
+                }
+            }
+            glBegin(GL_TRIANGLES);
+            glColor3f(color1.x, color1.y, color1.z);
+            glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
+            glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
+            glColor3f(color2.x, color2.y, color2.z);
+            glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
+            glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
+            glColor3f(color3.x, color3.y, color3.z);
+            glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
+            glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
+            glEnd();
+
+            if (wiremode == 2) {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                glEnable(GL_POLYGON_OFFSET_FILL);
+                glPolygonOffset(1.0, 1.0);
                 glBegin(GL_TRIANGLES);
-                glColor3f(1.0, 0.1, 0.1);
+                glColor3f(0.0, 0.0, 0.0);
                 glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
                 glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
                 glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
@@ -135,79 +142,26 @@ void display() {
                 glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
                 glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
                 glEnd();
-
-                if (wiremode == 2) {
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                    glEnable(GL_POLYGON_OFFSET_FILL);
-                    glPolygonOffset(1.0, 1.0);
-                    glBegin(GL_TRIANGLES);
-                    glColor3f(0.0, 0.0, 0.0);
-                    glNormal3f(trinormal[0].x, trinormal[0].y, trinormal[0].z);
-                    glVertex3f(triangle[0].x, triangle[0].y, triangle[0].z);
-                    glNormal3f(trinormal[1].x, trinormal[1].y, trinormal[1].z);
-                    glVertex3f(triangle[1].x, triangle[1].y, triangle[1].z);
-                    glNormal3f(trinormal[2].x, trinormal[2].y, trinormal[2].z);
-                    glVertex3f(triangle[2].x, triangle[2].y, triangle[2].z);
-                    glEnd();
-                    glDisable(GL_POLYGON_OFFSET_FILL);
-                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                }
+                glDisable(GL_POLYGON_OFFSET_FILL);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             }
-        glPopMatrix();
-    } else {
-        for (int i = 0; i < numPatches; i++) {
-            glPushMatrix();
-                glRotated(xAngle, 1, 0, 0);
-                glRotated(zAngle, 0, 0, 1);
-                Vector** surface = surfaces.at(i);
-                Vector** normal = normals.at(i);
-                for (int u = 0; u < numdiv - 1; u++) {
-                    for (int v = 0; v < numdiv - 1; v++) {
-                        glBegin(GL_QUADS);
-                        glColor3f(1.0, 0.1, 0.1);
-                        glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
-                        glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
-                        glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
-                        glVertex3f(surface[u+1][v].x, surface[u+1][v].y, surface[u+1][v].z);
-                        glNormal3f(normal[u+1][v+1].x, normal[u+1][v+1].y, normal[u+1][v+1].z);
-                        glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
-                        glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
-                        glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
-                        glEnd();
-
-                        if (wiremode == 2) {
-                            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                            glEnable(GL_POLYGON_OFFSET_FILL);
-                            glPolygonOffset(1.0, 1.0);
-                            glBegin(GL_QUADS);
-                            glColor3f(0.0, 0.0, 0.0);
-                            glNormal3f(normal[u][v].x, normal[u][v].y, normal[u][v].z);
-                            glVertex3f(surface[u][v].x, surface[u][v].y, surface[u][v].z);
-                            glNormal3f(normal[u+1][v].x, normal[u+1][v].y, normal[u+1][v].z);
-                            glVertex3f(surface[u+1][v].x, surface[u+1][v].y, surface[u+1][v].z);
-                            glNormal3f(normal[u+1][v+1].x, normal[u+1][v+1].y, normal[u+1][v+1].z);
-                            glVertex3f(surface[u+1][v+1].x, surface[u+1][v+1].y, surface[u+1][v+1].z);
-                            glNormal3f(normal[u][v+1].x, normal[u][v+1].y, normal[u][v+1].z);
-                            glVertex3f(surface[u][v+1].x, surface[u][v+1].y, surface[u][v+1].z);
-                            glEnd();
-                            glDisable(GL_POLYGON_OFFSET_FILL);
-                            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                        }
-                    }
-                }
-            glPopMatrix();
         }
-    }
+    glPopMatrix();
 
     glFlush();
     glutSwapBuffers();
 }
 
 void reshape(int w, int h) {
+    float width = (w == 0) ? 1.0 : (float) w;
+    float height = (h == 0) ? 1.0 : (float) h;
+
     glViewport(0, 0, (GLsizei) w, (GLsizei) h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-1.0, 1.0, -1.0, 1.0, nearVal, 20.0);
+    glFrustum(fmin(-width/height, -1.0), fmax(width/height, 1.0),
+            fmin(-height/width, -1.0), fmax(height/width, 1.0),
+            fmax(nearVal, 0.01), 20.0);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
@@ -227,11 +181,9 @@ void keyboard(unsigned char key, int x, int y) {
         case 'w':
             if (wiremode != 1) {
                 wiremode = 1;
-                glDisable(GL_CULL_FACE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             } else {
                 wiremode = 0;
-                glDisable(GL_CULL_FACE);
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             break;
@@ -245,16 +197,21 @@ void keyboard(unsigned char key, int x, int y) {
             }
             break;
         case '+':
-            nearVal += 0.01;
+            nearVal += 0.1;
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;
         case '-':
-            nearVal -= 0.01;
+            nearVal -= 0.1;
             glGetIntegerv(GL_VIEWPORT, window);
             glutReshapeWindow(window[2], window[3]);
             break;
-
+        case 'c':
+            if (curvature)
+                curvature = false;
+            else
+                curvature = true;
+            break;
         case 27:
             glutDestroyWindow(windowID);
             break;
@@ -436,14 +393,41 @@ void parse_bez_input(char* input) {
     }
 }
 
+void update_normals(std::vector<Vector>* normalList, Vector normal) {
+    int numNormals = normalList->size();
+    std::vector<int> normnum;
+    for (int i = 0; i < numNormals; i++) {
+        Vector othernorm = normalList->at(i);
+        float costheta = Vector::dot(normal, othernorm) / normal.len() / othernorm.len();
+        if (costheta > cos(smoothangle * M_PI / 180.0)) {
+            normnum.push_back(i);
+        }
+    }
+
+    int numFlagged = normnum.size();
+    Vector final = normal;
+    for (int i = 0; i < numFlagged; i++) {
+        final += normalList->at(normnum.at(i));
+    }
+    final /= (numFlagged + 1);
+    for (int i = 0; i < numFlagged; i++) {
+        normalList->at(normnum.at(i)) = final;
+    }
+    normalList->push_back(final);
+}
+
 void parse_obj_input(char* input) {
     int linecount = 0;
     std::vector<Vector> vertices;
+    std::vector< std::vector<Vector> > normals;
+    std::vector<Vector> faces;
     std::string line;
     std::ifstream file (input);
 
     // Create offset and provide "nonexistent" coordinate
-    vertices.push_back(Vector(0, 0, 0));
+    vertices.push_back(Vector());
+    std::vector<Vector> empty;
+    normals.push_back(empty);
 
     if (file.is_open()) {
         std::cout << "Parsing .obj file..." << std::endl;
@@ -487,6 +471,8 @@ void parse_obj_input(char* input) {
                 }
 
                 vertices.push_back(Vector(values[0], values[1], values[2]));
+                std::vector<Vector> normalList;
+                normals.push_back(normalList); // To be calculated later
 
             } else if (strcmp(tokens, "f") == 0) {
 
@@ -519,15 +505,15 @@ void parse_obj_input(char* input) {
                     Vector v1 = vertices.at((int) values[0]);
                     Vector v2 = vertices.at((int) values[1]);
                     Vector v3 = vertices.at((int) values[2]);
-                    Vector U = v2 - v1;
-                    Vector V = v3 - v1;
-                    Vector normal = Vector::cross(U, V).normalize();
                     Vector *tri = new Vector[3];
-                    Vector *norm = new Vector[3];
                     tri[0] = v1; tri[1] = v2; tri[2] = v3;
                     triangles.push_back(tri);
-                    norm[0] = norm[1] = norm[2] = normal;
-                    trinormals.push_back(norm);
+
+                    Vector normal = Vector::cross(v2 - v1, v3 - v1).normalize();
+                    update_normals(&(normals.at((int) values[0])), normal);
+                    update_normals(&(normals.at((int) values[1])), normal);
+                    update_normals(&(normals.at((int) values[2])), normal);
+                    faces.push_back(Vector(values[0], values[1], values[2]));
                 } catch (const std::out_of_range& e) {
                     std::cerr << "Line " << linecount <<
                             " does not contain valid parameters." << std::endl;
@@ -549,9 +535,43 @@ void parse_obj_input(char* input) {
         }
 
         file.close();
+        int numFaces = faces.size();
+        for (int i = 0; i < numFaces; i++) {
+            Vector vertnum = faces.at(i);
+            Vector* norm = new Vector[3];
+            norm[0] = normals.at(vertnum.x).at(0);
+            norm[1] = normals.at(vertnum.y).at(0);
+            norm[2] = normals.at(vertnum.z).at(0);
+            normals.at(vertnum.x).erase(normals.at(vertnum.x).begin());
+            normals.at(vertnum.y).erase(normals.at(vertnum.y).begin());
+            normals.at(vertnum.z).erase(normals.at(vertnum.z).begin());
+            trinormals.push_back(norm);
+        }
         std::cout << "Finished parsing .obj file." << std::endl;
     } else {
         std::cerr << "Unable to open file: " << input << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+void obj_output(char* output) {
+    std::ofstream file (output);
+    if (file.is_open()) {
+        int numTriangles = triangles.size();
+        for (int i = 0; i < numTriangles; i++) {
+            Vector* triangle = triangles.at(i);
+            file << "v " << triangle[0].x << " " << triangle[0].y << " " << triangle[0].z << "\n";
+            file << "v " << triangle[1].x << " " << triangle[1].y << " " << triangle[1].z << "\n";
+            file << "v " << triangle[2].x << " " << triangle[2].y << " " << triangle[2].z << "\n";
+        }
+        file << "\n";
+        for (int i = 0; i < numTriangles; i++) {
+            file << "f " << i*3 + 1 << " " << i*3 + 2 << " " << i*3 + 3 << "\n";
+        }
+        file << "\n";
+        file.close();
+    } else {
+        std::cerr << "Unable to open file: " << output << std::endl;
         exit(EXIT_FAILURE);
     }
 }
@@ -563,7 +583,10 @@ int main(int argc, char *argv[]) {
     }
 
     char* ext = strpbrk(argv[1], ".");
-    if (strcmp(ext, ".obj") == 0) {
+    if (ext == NULL) {
+        std::cerr << "File format not recognized." << std::endl;
+        exit(EXIT_FAILURE);
+    } else if (strcmp(ext, ".obj") == 0) {
         objInput = true;
         parse_obj_input(argv[1]);
     } else if (strcmp(ext, ".bez") == 0) {
@@ -581,20 +604,74 @@ int main(int argc, char *argv[]) {
     int argIndex;
 
     if (!objInput) {
+        if (!isFloat(argv[2])) {
+            std::cerr << argv[2] << " is not a valid parameter." << std::endl;
+            exit(EXIT_FAILURE);
+        }
         parameter = strtof(argv[2], NULL);
         argIndex = 3;
     } else {
         argIndex = 2;
     }
 
-    if (argc > argIndex) {
-        while (argIndex < argc) {
-            if (strcmp(argv[argIndex], "-a") == 0)
-                adaptive = true;
+    char* output;
+
+    while (argIndex < argc) {
+        if (strcmp(argv[argIndex], "-a") == 0) {
+            adaptive = true;
+        } else if (strcmp(argv[argIndex], "-o") == 0) {
             argIndex++;
+            if (objOutput) {
+                std::cout << "Warning: More than one output file indicated. " <<
+                        "Only the last will be written to." << std::endl;
+            }
+            objOutput = true;
+            if (argIndex >= argc) {
+                std::cerr << "No output file name provided." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            ext = strpbrk(argv[argIndex], ".");
+            if (ext == NULL || strcmp(ext, ".obj") != 0) {
+                std::cerr << "Output file should have extension .obj" << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            output = argv[argIndex];
+        } else if (strcmp(argv[argIndex], "-s") == 0) {
+            argIndex++;
+            if (!objInput) {
+                std::cout << "Warning: Setting smooth angle without .obj file " <<
+                        "has no effect." << std::endl;
+            }
+            if (argIndex >= argc) {
+                std::cerr << "No smooth angle value provided." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            if (!isFloat(argv[argIndex])) {
+                std::cerr << "Smooth angle value not formatted correctly." << std::endl;
+                exit(EXIT_FAILURE);
+            }
+            smoothangle = strtof(argv[argIndex], NULL);
+        } else {
+            std::cerr << "Unrecognized command: " << argv[argIndex] << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        argIndex++;
+    }
+
+    if (adaptive) {
+        for (int i = 0; i < numPatches; i++) {
+            Bezier::adaptive_subdivide(patches.at(i), i, parameter, &triangles, &trinormals, &triparams);
+        }
+    } else if (!objInput) {
+        for (int i = 0; i < numPatches; i++) {
+            Bezier::uniform_subdivide(patches.at(i), i, parameter, &triangles, &trinormals, &triparams);
         }
     }
 
+    if (objOutput) {
+        obj_output(output);
+        return 0;
+    }
 
     glutInit(&argc, argv);
     glutInitDisplayMode(mode);
@@ -607,9 +684,7 @@ int main(int argc, char *argv[]) {
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyboard);
-    glutSpecialFunc(special);
-
-    
+    glutSpecialFunc(special);    
 
     glutMainLoop();
 

@@ -9,3 +9,5 @@ Additional features implemented/included:
 
 Implemented after deadline:
 	Hidden line feature with key "h"
+	Obj file output suppot (with command -o outputfilename)
+	Smooths obj file input (largest angle in degrees considered smooth can be set with command -s smoothangle = 80)

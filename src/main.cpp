@@ -104,7 +104,8 @@ void display() {
         for (int i = 0; i < numTriangles; i++) {
             Vector* triangle = triangles.at(i);
             Vector* trinormal = trinormals.at(i);
-            Vector* triparam = triparams.at(i);
+            if (!objInput)
+                Vector* triparam = triparams.at(i);
             Vector color1 = Vector(0, 0.9, -0.9);
             Vector color2 = Vector(0, 0.9, -0.9);
             Vector color3 = Vector(0, 0.9, -0.9);

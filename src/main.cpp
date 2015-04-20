@@ -98,6 +98,7 @@ void display() {
     glRotated(-90, 1, 0, 0);
 
     int numTriangles = triangles.size();
+    Vector* triparam;
     glPushMatrix();
         glRotated(xAngle, 1, 0, 0);
         glRotated(zAngle, 0, 0, 1);
@@ -105,7 +106,7 @@ void display() {
             Vector* triangle = triangles.at(i);
             Vector* trinormal = trinormals.at(i);
             if (!objInput)
-                Vector* triparam = triparams.at(i);
+                triparam = triparams.at(i);
             Vector color1 = Vector(0, 0.9, -0.9);
             Vector color2 = Vector(0, 0.9, -0.9);
             Vector color3 = Vector(0, 0.9, -0.9);
